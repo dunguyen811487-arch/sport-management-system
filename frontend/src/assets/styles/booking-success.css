@@ -1,0 +1,298 @@
+/* =========================================================
+   BOOKING SUCCESS
+========================================================= */
+
+.booking-success-card {
+    max-width: 850px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 40px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+}
+
+
+/* =========================================================
+   SUCCESS ICON
+========================================================= */
+
+.success-icon {
+    width: 85px;
+    height: 85px;
+    margin: 0 auto 20px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: #d1e7dd;
+    color: #198754;
+
+    font-size: 45px;
+    font-weight: bold;
+}
+
+.success-title {
+    text-align: center;
+    font-weight: 700;
+    color: #198754;
+    margin-bottom: 10px;
+}
+
+.success-message {
+    text-align: center;
+    color: #6c757d;
+    margin-bottom: 30px;
+}
+
+
+/* =========================================================
+   BOOKING CODE
+========================================================= */
+
+.booking-code-box {
+    background: #f0fff6;
+    border: 1px dashed #198754;
+    border-radius: 14px;
+
+    padding: 18px 25px;
+    margin-bottom: 30px;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.booking-code-box span {
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.booking-code-box strong {
+    color: #198754;
+    font-size: 20px;
+    letter-spacing: 1px;
+}
+
+
+/* =========================================================
+   SECTION
+========================================================= */
+
+.success-section {
+    margin-top: 30px;
+    padding-top: 25px;
+    border-top: 1px solid #eeeeee;
+}
+
+.success-section h4 {
+    font-size: 19px;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+
+/* =========================================================
+   FIELD
+========================================================= */
+
+.success-field {
+    display: flex;
+    gap: 20px;
+
+    padding: 18px;
+
+    border: 1px solid #eeeeee;
+    border-radius: 16px;
+
+    background: #fafafa;
+}
+
+.success-field-image {
+    width: 150px;
+    height: 110px;
+
+    object-fit: cover;
+
+    border-radius: 12px;
+}
+
+.success-field-info {
+    flex: 1;
+}
+
+.success-field-info h3 {
+    font-size: 21px;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.success-field-info p {
+    margin-bottom: 7px;
+    color: #6c757d;
+}
+
+.success-field-info i {
+    width: 22px;
+    color: #198754;
+}
+
+
+/* =========================================================
+   BOOKING INFO
+========================================================= */
+
+.success-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.success-info-item {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.success-info-item span {
+    display: block;
+    color: #6c757d;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.success-info-item strong {
+    font-size: 16px;
+}
+
+
+/* =========================================================
+   PAYMENT
+========================================================= */
+
+.success-payment {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 20px;
+}
+
+.success-payment span {
+    color: #6c757d;
+}
+
+.success-total-price {
+    color: #198754;
+    font-size: 24px;
+}
+
+
+/* =========================================================
+   NOTE
+========================================================= */
+
+.success-note {
+    background: #fffdf2;
+    border: 1px solid #ffe69c;
+    border-radius: 12px;
+
+    padding: 15px;
+
+    color: #664d03;
+    white-space: pre-wrap;
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.success-status {
+    margin-top: 30px;
+
+    padding: 18px;
+
+    border-radius: 14px;
+
+    background: #f0fff6;
+    border: 1px solid #d1e7dd;
+}
+
+.success-status div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    margin-bottom: 8px;
+}
+
+.success-status div:last-child {
+    margin-bottom: 0;
+}
+
+.success-status i {
+    color: #198754;
+    font-size: 18px;
+}
+
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+.success-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+
+    margin-top: 35px;
+}
+
+.success-actions button {
+    min-width: 190px;
+    padding: 11px 18px;
+
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 768px) {
+
+    .booking-success-card {
+        padding: 25px;
+    }
+
+    .success-field {
+        flex-direction: column;
+    }
+
+    .success-field-image {
+        width: 100%;
+        height: 180px;
+    }
+
+    .success-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .booking-code-box {
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+    }
+
+    .success-actions {
+        flex-direction: column;
+    }
+
+    .success-actions button {
+        width: 100%;
+    }
+
+}

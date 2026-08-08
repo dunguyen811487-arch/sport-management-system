@@ -1,0 +1,173 @@
+/* =============================
+   Progress
+============================= */
+
+.booking-progress{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-bottom:40px;
+}
+
+.booking-progress .step{
+    width:55px;
+    height:55px;
+    border-radius:50%;
+    background:#198754;
+    color:#fff;
+    font-size:22px;
+    font-weight:bold;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    position:relative;
+
+    box-shadow:0 4px 10px rgba(0,0,0,.15);
+}
+
+.booking-progress .step span{
+    position:absolute;
+    top:65px;
+    width:120px;
+    text-align:center;
+    color:#555;
+    font-size:14px;
+    font-weight:500;
+}
+
+.booking-progress .line{
+    width:120px;
+    height:4px;
+    background:#198754;
+    margin:0 10px;
+    border-radius:5px;
+}
+
+/* =============================
+   Card
+============================= */
+
+.card{
+
+    border-radius:18px;
+
+    transition:.25s;
+
+}
+
+.card:hover{
+
+    transform:translateY(-3px);
+
+    box-shadow:0 12px 25px rgba(0,0,0,.12);
+
+}
+
+/* =============================
+   Image
+============================= */
+
+.detail-image{
+
+    width:100%;
+
+    height:260px;
+
+    object-fit:cover;
+
+    border-radius:15px;
+
+}
+
+/* =============================
+   Table
+============================= */
+
+.table th{
+
+    width:220px;
+
+    color:#555;
+
+    font-weight:600;
+
+}
+
+.table td{
+
+    vertical-align:middle;
+
+}
+
+/* =============================
+   Badge
+============================= */
+
+.badge{
+
+    font-size:14px;
+
+    padding:8px 14px;
+
+}
+
+/* =============================
+   Button
+============================= */
+
+.btn-lg{
+
+    padding:10px 24px;
+
+    border-radius:10px;
+
+}
+
+/* =============================
+   Responsive
+============================= */
+
+@media(max-width:768px){
+
+.booking-progress{
+
+flex-direction:column;
+
+gap:20px;
+
+}
+
+.booking-progress .line{
+
+display:none;
+
+}
+
+.booking-progress .step span{
+
+position:static;
+
+display:block;
+
+margin-top:10px;
+
+width:auto;
+
+}
+
+.detail-image{
+
+height:220px;
+
+margin-bottom:20px;
+
+}
+
+.table th{
+
+width:150px;
+
+}
+
+}

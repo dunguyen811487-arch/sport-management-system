@@ -1,5 +1,5 @@
 function FieldManagement() {
-    return <h1>Field Management</h1>;
+  return <h1>Field Management</h1>;
 }
 
 export default FieldManagement;

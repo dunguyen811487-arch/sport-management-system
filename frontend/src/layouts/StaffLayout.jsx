@@ -1,13 +1,13 @@
 import { Outlet } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import AdminSidebar from "../components/admin/AdminSidebar";
+import StaffSidebar from "../components/staff/StaffSidebar";
 
-function AdminLayout() {
+function StaffLayout() {
   return (
     <>
       <Navbar />
       <div className="d-flex">
-        <AdminSidebar />
+        <StaffSidebar />
         <div className="flex-grow-1 p-4">
           <Outlet />
         </div>
@@ -16,4 +16,4 @@ function AdminLayout() {
   );
 }
 
-export default AdminLayout;
+export default StaffLayout;
