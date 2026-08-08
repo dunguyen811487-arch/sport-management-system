@@ -1,16 +1,33 @@
 const Field = require("../models/field.model");
 
-// Lấy tất cả sân
+const createField = async (data) => {
+    return await Field.create(data);
+};
+
 const getAllFields = async () => {
     return await Field.find().populate("fieldTypeId");
 };
 
-// Tạo sân mới
-const createField = async (fieldData) => {
-    return await Field.create(fieldData);
+const getFieldById = async (id) => {
+    return await Field.findById(id).populate("fieldTypeId");
+};
+
+const updateField = async (id, data) => {
+    return await Field.findByIdAndUpdate(
+        id,
+        data,
+        { new: true }
+    );
+};
+
+const deleteField = async (id) => {
+    return await Field.findByIdAndDelete(id);
 };
 
 module.exports = {
-    getAllFields,
     createField,
+    getAllFields,
+    getFieldById,
+    updateField,
+    deleteField
 };

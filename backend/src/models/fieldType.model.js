@@ -1,21 +1,19 @@
 const mongoose = require("mongoose");
 
 const fieldTypeSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
+    {
+        name: {
+            type: String,
+            required: true
+        },
+
+        description: {
+            type: String
+        }
     },
-    description: {
-      type: String,
-      default: "",
-    },
-  },
-  {
-    timestamps: true,
-  }
+    {
+        timestamps: true
+    }
 );
 
 module.exports = mongoose.model("FieldType", fieldTypeSchema);

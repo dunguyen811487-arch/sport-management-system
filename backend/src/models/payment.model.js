@@ -1,43 +1,62 @@
 const mongoose = require("mongoose");
 
 const paymentSchema = new mongoose.Schema(
-  {
-    bookingId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Booking",
-      required: true,
-    },
+    {
+        // Booking được thanh toán
+        bookingId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Booking",
+            required: true,
+            unique: true
+        },
 
-    amount: {
-      type: Number,
-      required: true,
-    },
+        // Số tiền thanh toán
+        amount: {
+            type: Number,
+            required: true,
+            min: 0
+        },
 
-    paymentMethod: {
-      type: String,
-      enum: [
-        "cash",
-        "banking",
-        "momo"
-      ],
-      required: true,
-    },
+        // Phương thức thanh toán
+        paymentMethod: {
+            type: String,
+            enum: [
+                "cash",
+                "bank_transfer"
+            ],
+            required: true
+        },
 
-    paymentStatus: {
-      type: String,
-      enum: [
-        "pending",
-        "paid",
-        "failed"
-      ],
-      default: "pending",
-    },
+        // Trạng thái thanh toán
+        status: {
+            type: String,
+            enum: [
+                "pending",
+                "paid",
+                "failed",
+                "refunded"
+            ],
+            default: "pending"
+        },
 
-    transactionId: String,
-  },
-  {
-    timestamps: true,
-  }
+        // Mã giao dịch - dùng cho chuyển khoản
+        transactionCode: {
+            type: String,
+            default: ""
+        },
+
+        // Thời gian thanh toán
+        paidAt: {
+            type: Date,
+            default: null
+        }
+    },
+    {
+        timestamps: true
+    }
 );
 
-module.exports = mongoose.model("Payment", paymentSchema);
+module.exports = mongoose.model(
+    "Payment",
+    paymentSchema
+);
