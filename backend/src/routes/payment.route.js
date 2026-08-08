@@ -2,8 +2,8 @@ const express = require("express");
 
 const router = express.Router();
 
-const bookingController = require(
-    "../controllers/booking.controller"
+const paymentController = require(
+    "../controllers/payment.controller"
 );
 
 const {
@@ -16,30 +16,21 @@ const {
 // CUSTOMER
 // ======================================================
 
-// Tạo booking
+// Tạo payment
 router.post(
     "/",
     authenticate,
     authorize("customer"),
-    bookingController.createBooking
+    paymentController.createPayment
 );
 
 
-// Xem booking của mình
+// Xem payment của mình
 router.get(
     "/my",
     authenticate,
     authorize("customer"),
-    bookingController.getMyBookings
-);
-
-
-// Hủy booking của mình
-router.put(
-    "/:id/cancel",
-    authenticate,
-    authorize("customer"),
-    bookingController.cancelBooking
+    paymentController.getMyPayments
 );
 
 
@@ -47,30 +38,30 @@ router.put(
 // ADMIN
 // ======================================================
 
-// Xem tất cả booking
+// Xem tất cả payment
 router.get(
     "/",
     authenticate,
     authorize("admin"),
-    bookingController.getAllBookings
+    paymentController.getAllPayments
 );
 
 
-// Cập nhật booking
+// Xác nhận / cập nhật payment
 router.put(
     "/:id",
     authenticate,
     authorize("admin"),
-    bookingController.updateBooking
+    paymentController.updatePayment
 );
 
 
-// Xóa booking
+// Xóa payment
 router.delete(
     "/:id",
     authenticate,
     authorize("admin"),
-    bookingController.deleteBooking
+    paymentController.deletePayment
 );
 
 
@@ -78,12 +69,12 @@ router.delete(
 // CUSTOMER + ADMIN
 // ======================================================
 
-// Xem booking theo ID
+// Xem payment theo ID
 router.get(
     "/:id",
     authenticate,
     authorize("customer", "admin"),
-    bookingController.getBookingById
+    paymentController.getPaymentById
 );
 
 

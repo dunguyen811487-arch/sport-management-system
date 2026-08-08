@@ -1,0 +1,96 @@
+////////////////////////////////////////////////////////////
+// Sport Management System
+// Database: MongoDB
+// Author: Team
+////////////////////////////////////////////////////////////
+
+Table users {
+  _id ObjectId [pk]
+  fullName varchar [not null]
+  email varchar [not null, unique]
+  password varchar [not null]
+  phone varchar
+  avatar varchar
+  role varchar [not null, note: "admin | staff | customer"]
+  status varchar [note: "active | inactive"]
+  createdAt datetime
+  updatedAt datetime
+}
+
+Table field_types {
+  _id ObjectId [pk]
+  name varchar [not null]
+  description text
+  createdAt datetime
+  updatedAt datetime
+}
+
+Table fields {
+  _id ObjectId [pk]
+  fieldTypeId ObjectId [not null]
+
+  fieldName varchar [not null]
+  location varchar
+  pricePerHour decimal [not null]
+
+  image varchar
+  description text
+
+  status varchar [note: "active | maintenance | inactive"]
+
+  createdAt datetime
+  updatedAt datetime
+}
+
+Table bookings {
+  _id ObjectId [pk]
+
+  customerId ObjectId [not null]
+  fieldId ObjectId [not null]
+
+  bookingDate date [not null]
+
+  startTime time [not null]
+  endTime time [not null]
+
+  totalHours decimal
+  totalPrice decimal
+
+  status varchar [note: "pending | confirmed | completed | cancelled"]
+
+  note text
+
+  createdAt datetime
+  updatedAt datetime
+}
+
+Table payments {
+  _id ObjectId [pk]
+
+  bookingId ObjectId [not null, unique]
+
+  amount decimal [not null]
+
+  paymentMethod varchar [note: "Cash | VNPay | MoMo"]
+
+  paymentStatus varchar [note: "pending | paid | failed"]
+
+  transactionCode varchar
+
+  paidAt datetime
+
+  createdAt datetime
+  updatedAt datetime
+}
+
+////////////////////////////////////////////////////////////
+// Relationships
+////////////////////////////////////////////////////////////
+
+Ref: field_types._id < fields.fieldTypeId
+
+Ref: users._id < bookings.customerId
+
+Ref: fields._id < bookings.fieldId
+
+Ref: bookings._id - payments.bookingId
