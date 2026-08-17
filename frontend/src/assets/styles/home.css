@@ -1,0 +1,298 @@
+/* ==========================
+   HOME HEADER
+========================== */
+
+.welcome-banner{
+    background:linear-gradient(135deg,#2E7D32,#43A047);
+    padding:30px 40px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    color:white;
+
+    margin:-30px -30px 30px -30px;
+
+    border-radius:0 0 25px 25px;
+
+    box-shadow:0 10px 25px rgba(0,0,0,.12);
+}
+
+.welcome-left{
+    display:flex;
+    align-items:center;
+    gap:20px;
+}
+
+.avatar-circle{
+    width:75px;
+    height:75px;
+    border-radius:50%;
+    background:#ffffff;
+    color:#2E7D32;
+    font-size:32px;
+    font-weight:700;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.welcome-date{
+    margin:0;
+    opacity:.9;
+    font-size:15px;
+}
+
+.welcome-info h2{
+    margin:5px 0;
+    font-size:30px;
+    font-weight:700;
+}
+
+.welcome-info span{
+    font-size:15px;
+    opacity:.9;
+}
+
+.notify-btn{
+    width:50px;
+    height:50px;
+    border:none;
+    border-radius:50%;
+    background:white;
+    color:#2E7D32;
+    font-size:20px;
+    cursor:pointer;
+    transition:.3s;
+}
+
+.notify-btn:hover{
+    transform:scale(1.08);
+}
+
+/* ==========================
+   SEARCH
+========================== */
+
+.search-panel{
+    background:white;
+    border-radius:20px;
+    padding:18px 25px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:35px;
+    box-shadow:0 8px 20px rgba(0,0,0,.08);
+}
+
+.search-input{
+    width:45%;
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.search-input i{
+    color:#2E7D32;
+    font-size:20px;
+}
+
+.search-input input{
+    width:100%;
+    border:none;
+    outline:none;
+    font-size:16px;
+}
+
+.shortcut-menu{
+    display:flex;
+    gap:30px;
+}
+
+.shortcut-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    cursor:pointer;
+    color:#2E7D32;
+    font-weight:600;
+    transition:.3s;
+}
+
+.shortcut-item:hover{
+    color:#1B5E20;
+    transform:translateY(-2px);
+}
+
+.shortcut-item i{
+    font-size:20px;
+}
+.field-card img{
+    width:100%;
+    height:220px;
+    object-fit:contain;
+    background:#f4f4f4;
+}
+/* ================= HERO ================= */
+
+.hero-banner{
+
+    height:220px;
+
+    background:linear-gradient(135deg,#198754,#2ecc71);
+
+    border-radius:20px;
+
+    padding:30px 40px;
+
+    margin-bottom:30px;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    overflow:hidden;
+
+    color:white;
+}
+
+.hero-left{
+
+    width:60%;
+}
+
+.hero-left h2{
+
+    font-size:36px;
+
+    font-weight:700;
+
+    margin-bottom:15px;
+}
+
+.hero-left p{
+
+    font-size:17px;
+
+    opacity:.95;
+}
+
+.hero-right{
+
+    width:40%;
+
+    display:flex;
+
+    justify-content:end;
+}
+
+.hero-right img{
+
+    width:300px;
+
+    height:170px;
+
+    border-radius:18px;
+
+    object-fit:cover;
+
+    box-shadow:0 12px 25px rgba(0,0,0,.2);
+}
+/* ================= SPORTS ================= */
+
+.sport-card{
+
+    background:white;
+
+    border-radius:18px;
+
+    padding:30px;
+
+    text-align:center;
+
+    cursor:pointer;
+
+    transition:.3s;
+
+    box-shadow:0 5px 18px rgba(0,0,0,.08);
+}
+
+.sport-card:hover{
+
+    transform:translateY(-6px);
+
+    box-shadow:0 15px 35px rgba(0,0,0,.15);
+}
+
+.sport-card i{
+
+    font-size:45px;
+
+    color:#198754;
+
+    margin-bottom:15px;
+}
+
+.sport-card h5{
+
+    margin:0;
+
+    font-weight:600;
+}
+/* ==========================================================
+   HERO IMAGE
+========================================================== */
+
+.hero-right {
+    position: relative;
+    overflow: hidden;
+}
+
+
+.hero-right img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+    display: block;
+
+    border-radius: 20px;
+}
+
+
+.hero-image-placeholder {
+    width: 100%;
+    height: 100%;
+
+    min-height: 240px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    color: rgba(255, 255, 255, 0.95);
+
+    background: rgba(0, 0, 0, 0.08);
+
+    border-radius: 20px;
+}
+
+
+.hero-image-placeholder i {
+    font-size: 64px;
+
+    margin-bottom: 14px;
+}
+
+
+.hero-image-placeholder span {
+    font-size: 20px;
+
+    font-weight: 600;
+}

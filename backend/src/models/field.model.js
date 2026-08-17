@@ -13,13 +13,35 @@ const fieldSchema = new mongoose.Schema(
             required: true
         },
 
-        location: String,
+        location: {
+            type: String
+        },
 
-        pricePerHour: Number,
+        pricePerHour: {
+            type: Number
+        },
+
+        image: {
+            type: String,
+            default: ""
+        },
+
+        description: {
+            type: String,
+            default: ""
+        },
+
+        rating: {
+            type: Number,
+            default: 0
+        },
 
         status: {
             type: String,
-            enum: ["active", "maintenance"],
+            enum: [
+                "active",
+                "maintenance"
+            ],
             default: "active"
         }
     },
@@ -28,4 +50,8 @@ const fieldSchema = new mongoose.Schema(
     }
 );
 
-module.exports = mongoose.model("Field", fieldSchema);
+module.exports =
+    mongoose.model(
+        "Field",
+        fieldSchema
+    );

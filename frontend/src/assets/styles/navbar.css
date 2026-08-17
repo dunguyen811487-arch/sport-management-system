@@ -1,0 +1,260 @@
+/* ===========================
+   NAVBAR
+=========================== */
+
+.navbar-custom{
+
+    position:fixed;
+
+    top:0;
+
+    left:260px;
+
+    right:0;
+
+    height:72px;
+
+    background:#ffffff;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:0 30px;
+
+    box-shadow:0 2px 12px rgba(0,0,0,.08);
+
+    z-index:999;
+
+}
+
+/* ===========================
+   LEFT
+=========================== */
+
+.navbar-left{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:25px;
+
+}
+
+.page-title h4{
+
+    margin:0;
+
+    font-size:22px;
+
+    font-weight:700;
+
+    color:#263238;
+
+}
+
+.page-title span{
+
+    color:#888;
+
+    font-size:14px;
+
+}
+
+/* ===========================
+   SEARCH
+=========================== */
+
+.search-box{
+
+    width:380px;
+
+    display:flex;
+
+    align-items:center;
+
+    background:#f5f7fb;
+
+    border-radius:40px;
+
+    padding:10px 18px;
+
+}
+
+.search-box i{
+
+    color:#999;
+
+    margin-right:10px;
+
+}
+
+.search-box input{
+
+    flex:1;
+
+    border:none;
+
+    background:transparent;
+
+    outline:none;
+
+    font-size:15px;
+
+}
+
+/* ===========================
+   RIGHT
+=========================== */
+
+.navbar-right{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:18px;
+
+}
+
+/* ===========================
+   ICON BUTTON
+=========================== */
+
+.icon-btn{
+
+    width:46px;
+
+    height:46px;
+
+    border:none;
+
+    border-radius:50%;
+
+    background:#f5f7fb;
+
+    cursor:pointer;
+
+    transition:.3s;
+
+}
+
+.icon-btn:hover{
+
+    background:#2E7D32;
+
+    color:white;
+
+}
+
+/* ===========================
+   USER
+=========================== */
+
+.user-box{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:15px;
+
+    cursor:pointer;
+
+}
+
+.user-avatar{
+
+    width:48px;
+
+    height:48px;
+
+    border-radius:50%;
+
+    object-fit:cover;
+
+    border:3px solid #43A047;
+
+}
+
+.user-name{
+
+    font-size:15px;
+
+    font-weight:600;
+
+}
+
+.user-role{
+
+    font-size:13px;
+
+    color:#888;
+
+}
+
+/* ===========================
+   LOGIN BUTTON
+=========================== */
+
+.login-btn{
+
+    background:#2E7D32;
+
+    color:white;
+
+    border:none;
+
+    padding:10px 20px;
+
+    border-radius:25px;
+
+    font-weight:600;
+
+    transition:.3s;
+
+}
+
+.login-btn:hover{
+
+    background:#1B5E20;
+
+}
+/* ==========================================================
+   CUSTOMER NAVBAR
+========================================================== */
+
+.customer-top-navbar {
+
+    position: fixed !important;
+
+    top: 0 !important;
+
+    left: 0 !important;
+
+    right: 0 !important;
+
+    width: 100% !important;
+
+    height: 72px !important;
+
+    min-height: 72px !important;
+
+    margin: 0 !important;
+
+    background: #ffffff !important;
+
+    z-index: 99999 !important;
+
+    box-shadow:
+        0 2px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+
+.customer-top-navbar .dropdown-menu {
+
+    z-index: 100000;
+}

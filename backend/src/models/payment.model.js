@@ -1,62 +1,129 @@
 const mongoose = require("mongoose");
 
+
 const paymentSchema = new mongoose.Schema(
     {
-        // Booking được thanh toán
+        // ======================================================
+        // BOOKING
+        // ======================================================
+
         bookingId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Booking",
-            required: true,
-            unique: true
+            type:
+                mongoose.Schema.Types.ObjectId,
+
+            ref:
+                "Booking",
+
+            required:
+                true,
+
+            unique:
+                true
         },
 
-        // Số tiền thanh toán
+
+        // ======================================================
+        // AMOUNT
+        // ======================================================
+
         amount: {
-            type: Number,
-            required: true,
-            min: 0
+            type:
+                Number,
+
+            required:
+                true,
+
+            min:
+                0
         },
 
-        // Phương thức thanh toán
+
+        // ======================================================
+        // PAYMENT METHOD
+        // ======================================================
+
         paymentMethod: {
-            type: String,
+            type:
+                String,
+
             enum: [
                 "cash",
                 "bank_transfer"
             ],
-            required: true
+
+            required:
+                true
         },
 
-        // Trạng thái thanh toán
+
+        // ======================================================
+        // STATUS
+        // ======================================================
+
         status: {
-            type: String,
+            type:
+                String,
+
             enum: [
                 "pending",
                 "paid",
                 "failed",
+                "cancelled",
                 "refunded"
             ],
-            default: "pending"
+
+            default:
+                "pending"
         },
 
-        // Mã giao dịch - dùng cho chuyển khoản
+
+        // ======================================================
+        // PAYMENT PROOF
+        // ======================================================
+
+        paymentProof: {
+            type:
+                String,
+
+            default:
+                ""
+        },
+
+
+        // ======================================================
+        // TRANSACTION CODE
+        // ======================================================
+
         transactionCode: {
-            type: String,
-            default: ""
+            type:
+                String,
+
+            default:
+                ""
         },
 
-        // Thời gian thanh toán
+
+        // ======================================================
+        // PAID AT
+        // ======================================================
+
         paidAt: {
-            type: Date,
-            default: null
+            type:
+                Date,
+
+            default:
+                null
         }
     },
     {
-        timestamps: true
+        timestamps:
+            true
     }
 );
 
-module.exports = mongoose.model(
-    "Payment",
-    paymentSchema
-);
+
+module.exports =
+    mongoose.model(
+        "Payment",
+        paymentSchema
+    );

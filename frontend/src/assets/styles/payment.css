@@ -1,0 +1,40 @@
+.payment-qr {
+    width: 220px;
+    height: 220px;
+    object-fit: contain;
+}
+
+
+.payment-timer {
+    font-size: 42px;
+    font-weight: bold;
+    color: #198754;
+    letter-spacing: 3px;
+    margin: 15px 0;
+}
+
+
+.payment-method {
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+
+.payment-method:hover {
+    border-color: #198754;
+    background: #f8fff9;
+}
+
+
+.payment-card {
+    border-radius: 16px;
+}
+
+
+.payment-title {
+    font-weight: 700;
+    color: #198754;
+}

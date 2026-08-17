@@ -1,31 +1,62 @@
-const express = require("express");
+const express =
+    require("express");
 
-const router = express.Router();
+const router =
+    express.Router();
 
-const paymentController = require(
-    "../controllers/payment.controller"
-);
+
+const paymentController =
+    require(
+        "../controllers/payment.controller"
+    );
+
 
 const {
     authenticate,
     authorize
-} = require("../middlewares/auth.middleware");
+} = require(
+    "../middlewares/auth.middleware"
+);
+
+
+// ======================================================
+// UPLOAD
+// ======================================================
+
+const upload =
+    require(
+        "../middlewares/upload"
+    );
 
 
 // ======================================================
 // CUSTOMER
 // ======================================================
 
-// Tạo payment
+
+// ------------------------------------------------------
+// CREATE PAYMENT
+//
+// cash:
+// không cần file
+//
+// bank_transfer:
+// cần paymentProof
+// ------------------------------------------------------
+
 router.post(
     "/",
     authenticate,
     authorize("customer"),
+    upload.single("paymentProof"),
     paymentController.createPayment
 );
 
 
-// Xem payment của mình
+// ------------------------------------------------------
+// MY PAYMENTS
+// ------------------------------------------------------
+
 router.get(
     "/my",
     authenticate,
@@ -35,28 +66,49 @@ router.get(
 
 
 // ======================================================
-// ADMIN
+// STAFF + ADMIN
 // ======================================================
 
-// Xem tất cả payment
+
+// ------------------------------------------------------
+// GET ALL
+// ------------------------------------------------------
+
 router.get(
     "/",
     authenticate,
-    authorize("admin"),
+    authorize(
+        "staff",
+        "admin"
+    ),
     paymentController.getAllPayments
 );
 
 
-// Xác nhận / cập nhật payment
+// ------------------------------------------------------
+// UPDATE
+// ------------------------------------------------------
+
 router.put(
     "/:id",
     authenticate,
-    authorize("admin"),
+    authorize(
+        "staff",
+        "admin"
+    ),
     paymentController.updatePayment
 );
 
 
-// Xóa payment
+// ======================================================
+// ADMIN
+// ======================================================
+
+
+// ------------------------------------------------------
+// DELETE
+// ------------------------------------------------------
+
 router.delete(
     "/:id",
     authenticate,
@@ -66,14 +118,22 @@ router.delete(
 
 
 // ======================================================
-// CUSTOMER + ADMIN
+// CUSTOMER + STAFF + ADMIN
 // ======================================================
 
-// Xem payment theo ID
+
+// ------------------------------------------------------
+// GET BY ID
+// ------------------------------------------------------
+
 router.get(
     "/:id",
     authenticate,
-    authorize("customer", "admin"),
+    authorize(
+        "customer",
+        "staff",
+        "admin"
+    ),
     paymentController.getPaymentById
 );
 

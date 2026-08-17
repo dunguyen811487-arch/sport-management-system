@@ -34,13 +34,20 @@ const bookingSchema = new mongoose.Schema(
             default: 0
         },
 
+        // ======================================================
+        // TRẠNG THÁI BOOKING
+        // ======================================================
+        //
+        // pending   = Chờ xử lý
+        // confirmed = Đã xác nhận
+        // cancelled = Đã hủy
+        //
         status: {
             type: String,
             enum: [
                 "pending",
                 "confirmed",
-                "cancelled",
-                "completed"
+                "cancelled"
             ],
             default: "pending"
         },
@@ -48,6 +55,15 @@ const bookingSchema = new mongoose.Schema(
         note: {
             type: String,
             default: ""
+        },
+
+        // ======================================================
+        // THỜI HẠN GIỮ SÂN CHỜ THANH TOÁN
+        // ======================================================
+
+        paymentExpiresAt: {
+            type: Date,
+            default: null
         }
     },
     {
@@ -55,4 +71,8 @@ const bookingSchema = new mongoose.Schema(
     }
 );
 
-module.exports = mongoose.model("Booking", bookingSchema);
+module.exports =
+    mongoose.model(
+        "Booking",
+        bookingSchema
+    );

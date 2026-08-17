@@ -1,80 +1,306 @@
-const fieldService = require("../services/field.service");
+const fieldService =
+    require("../services/field.service");
 
+
+// ======================================================
 // CREATE
-const createField = async (req, res) => {
-    try {
-        const field = await fieldService.createField(req.body);
+// ======================================================
 
-        res.status(201).json(field);
+const createField = async (
+    req,
+    res
+) => {
+
+    try {
+
+        const data = {
+            ...req.body
+        };
+
+
+        // ----------------------------------------------
+        // IMAGE
+        // ----------------------------------------------
+
+        if (req.file) {
+
+            data.image =
+                `/uploads/fields/${req.file.filename}`;
+
+        }
+
+
+        // ----------------------------------------------
+        // ÉP KIỂU
+        // ----------------------------------------------
+
+        if (
+            data.pricePerHour !== undefined &&
+            data.pricePerHour !== ""
+        ) {
+
+            data.pricePerHour =
+                Number(
+                    data.pricePerHour
+                );
+
+        }
+
+
+        const field =
+            await fieldService.createField(
+                data
+            );
+
+
+        return res.status(201).json({
+            success: true,
+            message:
+                "Tạo sân thành công",
+            data: field
+        });
+
     } catch (error) {
-        res.status(500).json({
-            message: error.message
+
+        console.error(
+            "Create field error:",
+            error
+        );
+
+
+        return res.status(400).json({
+            success: false,
+            message:
+                error.message
         });
     }
 };
 
+
+// ======================================================
 // GET ALL
-const getAllFields = async (req, res) => {
-    try {
-        const fields = await fieldService.getAllFields();
+// ======================================================
 
-        res.json(fields);
+const getAllFields = async (
+    req,
+    res
+) => {
+
+    try {
+
+        const fields =
+            await fieldService.getAllFields();
+
+
+        return res.status(200).json(
+            fields
+        );
+
     } catch (error) {
-        res.status(500).json({
-            message: error.message
+
+        console.error(
+            "Get all fields error:",
+            error
+        );
+
+
+        return res.status(500).json({
+            success: false,
+            message:
+                error.message
         });
     }
 };
 
+
+// ======================================================
 // GET BY ID
-const getFieldById = async (req, res) => {
+// ======================================================
+
+const getFieldById = async (
+    req,
+    res
+) => {
+
     try {
-        const field = await fieldService.getFieldById(req.params.id);
+
+        const field =
+            await fieldService.getFieldById(
+                req.params.id
+            );
+
 
         if (!field) {
+
             return res.status(404).json({
-                message: "Field not found"
+                success: false,
+                message:
+                    "Không tìm thấy sân"
             });
         }
 
-        res.json(field);
-    } catch (error) {
-        res.status(500).json({
-            message: error.message
-        });
-    }
-};
 
-// UPDATE
-const updateField = async (req, res) => {
-    try {
-        const field = await fieldService.updateField(
-            req.params.id,
-            req.body
+        return res.status(200).json(
+            field
         );
 
-        res.json(field);
     } catch (error) {
-        res.status(500).json({
-            message: error.message
+
+        console.error(
+            "Get field by id error:",
+            error
+        );
+
+
+        return res.status(500).json({
+            success: false,
+            message:
+                error.message
         });
     }
 };
 
-// DELETE
-const deleteField = async (req, res) => {
+
+// ======================================================
+// UPDATE
+// ======================================================
+
+const updateField = async (
+    req,
+    res
+) => {
+
     try {
-        await fieldService.deleteField(req.params.id);
 
-        res.json({
-            message: "Deleted successfully"
+        const data = {
+            ...req.body
+        };
+
+
+        // ----------------------------------------------
+        // IMAGE
+        // ----------------------------------------------
+
+        if (req.file) {
+
+            data.image =
+                `/uploads/fields/${req.file.filename}`;
+
+        }
+
+
+        // ----------------------------------------------
+        // PRICE
+        // ----------------------------------------------
+
+        if (
+            data.pricePerHour !== undefined &&
+            data.pricePerHour !== ""
+        ) {
+
+            data.pricePerHour =
+                Number(
+                    data.pricePerHour
+                );
+
+        }
+
+
+        // ----------------------------------------------
+        // UPDATE
+        // ----------------------------------------------
+
+        const field =
+            await fieldService.updateField(
+                req.params.id,
+                data
+            );
+
+
+        if (!field) {
+
+            return res.status(404).json({
+                success: false,
+                message:
+                    "Không tìm thấy sân"
+            });
+        }
+
+
+        return res.status(200).json({
+            success: true,
+            message:
+                "Cập nhật sân thành công",
+            data: field
         });
+
     } catch (error) {
-        res.status(500).json({
-            message: error.message
+
+        console.error(
+            "Update field error:",
+            error
+        );
+
+
+        return res.status(400).json({
+            success: false,
+            message:
+                error.message
         });
     }
 };
+
+
+// ======================================================
+// DELETE
+// ======================================================
+
+const deleteField = async (
+    req,
+    res
+) => {
+
+    try {
+
+        const field =
+            await fieldService.deleteField(
+                req.params.id
+            );
+
+
+        if (!field) {
+
+            return res.status(404).json({
+                success: false,
+                message:
+                    "Không tìm thấy sân"
+            });
+        }
+
+
+        return res.status(200).json({
+            success: true,
+            message:
+                "Xóa sân thành công",
+            data: field
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Delete field error:",
+            error
+        );
+
+
+        return res.status(400).json({
+            success: false,
+            message:
+                error.message
+        });
+    }
+};
+
 
 module.exports = {
     createField,

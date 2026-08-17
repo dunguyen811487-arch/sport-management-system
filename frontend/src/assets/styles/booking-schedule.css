@@ -1,0 +1,483 @@
+/* =========================
+   Booking Schedule
+========================= */
+
+.booking-header {
+  display: flex;
+  gap: 30px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 25px;
+  align-items: center;
+}
+
+.booking-image {
+  width: 330px;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 15px;
+  flex-shrink: 0;
+}
+
+.booking-info {
+  flex: 1;
+}
+
+.booking-info h2 {
+  font-size: 30px;
+  font-weight: 700;
+  margin-bottom: 15px;
+}
+
+.booking-info p {
+  margin-bottom: 10px;
+  color: #666;
+  font-size: 16px;
+}
+
+.booking-info h3 {
+  margin-top: 20px;
+  font-size: 28px;
+}
+
+/* =========================
+   Timeline
+========================= */
+
+.timeline-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+}
+
+.time-slot {
+
+  height: 60px;
+
+  border: 2px solid #28a745;
+
+  border-radius: 12px;
+
+  background: white;
+
+  font-weight: 600;
+
+  transition: .25s;
+
+  cursor: pointer;
+
+}
+
+.time-slot:hover {
+
+  background: #28a745;
+
+  color: white;
+
+  transform: translateY(-3px);
+
+}
+
+.time-slot.selected {
+
+  background: #28a745;
+
+  color: white;
+
+}
+
+.time-slot.booked {
+
+  background: #d6d6d6;
+
+  border-color: #d6d6d6;
+
+  color: #777;
+
+  cursor: not-allowed;
+
+}
+
+.time-slot.booked:hover {
+
+  transform: none;
+
+  background: #d6d6d6;
+
+  color: #777;
+
+}
+
+/* =========================
+   Legend
+========================= */
+
+.legend-item {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  font-weight: 500;
+
+}
+
+.legend {
+
+  width: 18px;
+
+  height: 18px;
+
+  border-radius: 5px;
+
+}
+
+.legend.available {
+
+  background: white;
+
+  border: 2px solid #28a745;
+
+}
+
+.legend.selected {
+
+  background: #28a745;
+
+}
+
+.legend.booked {
+
+  background: #d6d6d6;
+
+}
+
+/* =========================
+   Price Box
+========================= */
+
+.price-box {
+
+  background: #f8f9fa;
+
+  border-radius: 15px;
+
+  padding: 25px;
+
+  height: 100%;
+
+}
+
+.price-box h4 {
+
+  font-weight: 700;
+
+}
+
+.price-box h3 {
+
+  font-size: 32px;
+
+  font-weight: bold;
+
+}
+
+/* =========================
+   Table
+========================= */
+
+.table th {
+
+  width: 150px;
+
+  color: #666;
+
+}
+
+.table td {
+
+  font-weight: 600;
+
+}
+
+/* =========================
+   Buttons
+========================= */
+
+.btn-lg {
+
+  min-width: 170px;
+
+  border-radius: 12px;
+
+  font-weight: 600;
+
+}
+
+/* =========================
+   Card
+========================= */
+
+.card {
+
+  border-radius: 18px;
+
+}
+
+.card h4 {
+
+  font-weight: 700;
+
+}
+
+/* =========================
+   Responsive
+========================= */
+
+@media (max-width:992px){
+
+.booking-header{
+
+flex-direction:column;
+
+text-align:center;
+
+}
+
+.booking-image{
+
+width:100%;
+
+height:240px;
+
+}
+
+.timeline-grid{
+
+grid-template-columns:repeat(3,1fr);
+
+}
+
+}
+
+@media (max-width:768px){
+
+.timeline-grid{
+
+grid-template-columns:repeat(2,1fr);
+
+}
+
+.btn-lg{
+
+width:100%;
+
+margin-bottom:10px;
+
+}
+
+.d-flex.justify-content-between{
+
+flex-direction:column;
+
+}
+
+}
+/* ==========================================================
+   BOOKING TIME SLOT
+========================================================== */
+
+.booking-time-slot {
+
+    width: 100%;
+
+    min-height: 78px;
+
+    border: 2px solid #198754;
+
+    border-radius: 14px;
+
+    background: #ffffff;
+
+    color: #212529;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+
+}
+
+
+/* ==========================================================
+   HOVER
+========================================================== */
+
+.booking-time-slot:hover:not(:disabled) {
+
+    background: #edf8f1;
+
+    border-color: #157347;
+
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 4px 10px
+        rgba(25, 135, 84, 0.12);
+
+}
+
+
+/* ==========================================================
+   TIME
+========================================================== */
+
+.booking-time {
+
+    font-size: 18px;
+
+    font-weight: 700;
+
+}
+
+
+/* ==========================================================
+   STATUS
+========================================================== */
+
+.booking-time-status {
+
+    margin-top: 4px;
+
+    font-size: 12px;
+
+    opacity: 0.75;
+
+}
+
+
+/* ==========================================================
+   SELECTED
+========================================================== */
+
+.booking-time-slot.selected {
+
+    background: #198754;
+
+    border-color: #198754;
+
+    color: #ffffff;
+
+}
+
+
+/* ==========================================================
+   BOOKED
+========================================================== */
+
+.booking-time-slot.booked {
+
+    background: #e9ecef;
+
+    border-color: #ced4da;
+
+    color: #6c757d;
+
+    cursor: not-allowed;
+
+    box-shadow: none;
+
+}
+
+
+.booking-time-slot.booked:hover {
+
+    background: #e9ecef;
+
+    border-color: #ced4da;
+
+    transform: none;
+
+}
+
+
+/* ==========================================================
+   LEGEND
+========================================================== */
+
+.booking-legend-box {
+
+    width: 20px;
+
+    height: 20px;
+
+    border-radius: 5px;
+
+    display: inline-block;
+
+    margin-right: 8px;
+
+    border: 2px solid;
+}
+
+
+.booking-legend-box.available {
+
+    background: #ffffff;
+
+    border-color: #198754;
+
+}
+
+
+.booking-legend-box.selected {
+
+    background: #198754;
+
+    border-color: #198754;
+
+}
+
+
+.booking-legend-box.booked {
+
+    background: #e9ecef;
+
+    border-color: #ced4da;
+
+}
+
+
+/* ==========================================================
+   MOBILE
+========================================================== */
+
+@media (max-width: 576px) {
+
+    .booking-time-slot {
+
+        min-height: 70px;
+
+    }
+
+
+    .booking-time {
+
+        font-size: 16px;
+
+    }
+
+}

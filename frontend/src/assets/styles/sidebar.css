@@ -1,0 +1,316 @@
+.customer-sidebar {
+    position: relative;
+
+    left: 0;
+    top: 0;
+
+    width: 100%;
+    height: 100%;
+
+    background: #ffffff;
+
+    border-right: 1px solid #e9ecef;
+
+    padding: 15px;
+
+    box-sizing: border-box;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    z-index: 1;
+}
+
+
+/* =========================
+   MENU
+========================= */
+
+.sidebar-menu {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 5px;
+}
+
+
+/* =========================
+   LINK
+========================= */
+
+.sidebar-link {
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    width: 100%;
+
+    padding: 12px 14px;
+
+    border-radius: 10px;
+
+    color: #596579;
+
+    text-decoration: none;
+
+    font-size: 14px;
+
+    transition: 0.2s;
+
+    box-sizing: border-box;
+}
+
+.sidebar-link i {
+    width: 20px;
+
+    font-size: 17px;
+
+    flex-shrink: 0;
+}
+
+.sidebar-link:hover {
+    background: #edf8f1;
+
+    color: #198754;
+}
+
+.sidebar-link.active {
+    background: #198754;
+
+    color: white;
+}
+
+
+/* =========================
+   TITLE
+========================= */
+
+.sidebar-title {
+    margin: 15px 10px 10px;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    color: #9aa3af;
+
+    letter-spacing: 1px;
+}
+
+
+/* =========================
+   BOTTOM
+========================= */
+
+.sidebar-bottom {
+    margin-top: 25px;
+}
+
+.sidebar-user {
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 10px;
+}
+
+.sidebar-user .avatar {
+    width: 40px;
+    height: 40px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: #198754;
+
+    color: white;
+
+    font-weight: 700;
+
+    flex-shrink: 0;
+}
+
+.sidebar-user strong {
+    font-size: 13px;
+}
+
+.sidebar-user p {
+    font-size: 11px;
+
+    color: #8993a3;
+}
+
+
+/* =========================
+   SCROLLBAR
+========================= */
+
+.customer-sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.customer-sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.customer-sidebar::-webkit-scrollbar-thumb {
+    background: #d5dbe1;
+
+    border-radius: 10px;
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 768px) {
+
+    .customer-sidebar {
+        display: none;
+    }
+}
+/* ==========================================================
+   STAFF SIDEBAR
+========================================================== */
+
+.staff-sidebar {
+    width: 100%;
+    height: 100%;
+
+    padding: 15px;
+
+    background: #ffffff;
+
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: column;
+}
+
+
+.staff-sidebar-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+
+.staff-sidebar-link {
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    width: 100%;
+
+    padding: 12px 14px;
+
+    border-radius: 10px;
+
+    color: #596579;
+
+    text-decoration: none;
+
+    font-size: 14px;
+
+    transition: 0.2s;
+}
+
+
+.staff-sidebar-link i {
+    width: 20px;
+
+    font-size: 17px;
+
+    flex-shrink: 0;
+}
+
+
+.staff-sidebar-link:hover {
+    background: #edf8f1;
+
+    color: #198754;
+}
+
+
+.staff-sidebar-link.active {
+    background: #198754;
+
+    color: #ffffff;
+}
+
+
+.staff-sidebar-bottom {
+    margin-top: auto;
+}
+
+
+.staff-sidebar-user {
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 10px;
+}
+
+
+.staff-avatar {
+    width: 42px;
+    height: 42px;
+
+    border-radius: 50%;
+
+    background: #198754;
+
+    color: #ffffff;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-weight: 700;
+
+    flex-shrink: 0;
+}
+
+
+.staff-user-info {
+    display: flex;
+
+    flex-direction: column;
+
+    min-width: 0;
+}
+
+
+.staff-user-info strong {
+    font-size: 13px;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+
+.staff-user-info small {
+    color: #8993a3;
+
+    font-size: 11px;
+}
