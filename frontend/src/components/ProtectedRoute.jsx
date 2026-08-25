@@ -1,66 +1,90 @@
-import { Navigate, Outlet } from "react-router-dom";
+import {
+    Navigate,
+    Outlet,
+    useLocation,
+} from "react-router-dom";
+
 import useAuth from "../hooks/useAuth";
 
-function ProtectedRoute({ allowedRoles }) {
-  const {
-    isAuthenticated,
-    user,
-    loading,
-  } = useAuth();
 
-  // ==========================================
-  // ĐANG KIỂM TRA LOGIN
-  // ==========================================
+function ProtectedRoute({
+    allowedRoles = [],
+}) {
 
-  if (loading) {
-    return <div>Đang tải...</div>;
-  }
+    const {
+        isAuthenticated,
+        user,
+    } = useAuth();
 
-  // ==========================================
-  // CHƯA ĐĂNG NHẬP
-  // ==========================================
 
-  if (!isAuthenticated) {
-    return (
-      <Navigate
-        to="/login"
-        replace
-      />
-    );
-  }
+    const location =
+        useLocation();
 
-  // ==========================================
-  // CHUẨN HÓA ROLE
-  // Backend hiện tại có thể trả lowercase
-  // ==========================================
 
-  const userRole =
-    user?.role?.toLowerCase();
+    // ==========================================================
+    // CHƯA ĐĂNG NHẬP
+    // ==========================================================
 
-  // ==========================================
-  // KIỂM TRA QUYỀN
-  // ==========================================
+    if (!isAuthenticated) {
 
-  if (
-    allowedRoles &&
-    allowedRoles.length > 0 &&
-    !allowedRoles
-      .map((role) => role.toLowerCase())
-      .includes(userRole)
-  ) {
-    return (
-      <Navigate
-        to="/403"
-        replace
-      />
-    );
-  }
+        return (
+            <Navigate
+                to="/login"
+                state={{
+                    from:
+                        location.pathname,
+                }}
+                replace
+            />
+        );
+    }
 
-  // ==========================================
-  // CHO PHÉP
-  // ==========================================
 
-  return <Outlet />;
+    // ==========================================================
+    // ROLE
+    // ==========================================================
+
+    const userRole =
+        String(
+            user?.role || ""
+        ).toLowerCase();
+
+
+    const normalizedRoles =
+        allowedRoles.map(
+            role =>
+                String(
+                    role
+                ).toLowerCase()
+        );
+
+
+    // ==========================================================
+    // KIỂM TRA QUYỀN
+    // ==========================================================
+
+    if (
+        normalizedRoles.length > 0 &&
+        !normalizedRoles.includes(
+            userRole
+        )
+    ) {
+
+        return (
+            <Navigate
+                to="/403"
+                replace
+            />
+        );
+    }
+
+
+    // ==========================================================
+    // OK
+    // ==========================================================
+
+    return <Outlet />;
 }
+
 
 export default ProtectedRoute;

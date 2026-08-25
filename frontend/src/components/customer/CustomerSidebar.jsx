@@ -1,29 +1,66 @@
-import { NavLink, Link } from "react-router-dom";
+import {
+  NavLink,
+  Link,
+} from "react-router-dom";
+
 import useAuth from "../../hooks/useAuth";
+
 import "../../assets/styles/sidebar.css";
+
 import { useState } from "react";
+
 import ComingSoonToast from "../common/ComingSoonToast";
 
+
 function CustomerSidebar() {
-  const { isAuthenticated, user, logout } = useAuth();
-  const [showToast, setShowToast] = useState(false);
+
+  const {
+    isAuthenticated,
+    user,
+    logout,
+  } = useAuth();
+
+  console.log(
+    "CUSTOMER SIDEBAR AUTH:",
+    {
+      isAuthenticated,
+      user,
+      token:
+        localStorage.getItem("token"),
+      storedUser:
+        localStorage.getItem("user"),
+    }
+  );
+
+  const [
+    showToast,
+    setShowToast,
+  ] = useState(false);
 
   const handleComingSoon = (e) => {
     e.preventDefault();
     setShowToast(true);
   };
 
+
+  const displayName =
+    user?.fullName ||
+    user?.name ||
+    "Khách hàng";
+
+
+  const avatarLetter =
+    displayName
+      .trim()
+      .charAt(0)
+      .toUpperCase() ||
+    "U";
+
+
   return (
     <aside className="customer-sidebar">
 
-      {/* ===== Logo ===== */}
-
-      <div className="sidebar-header">
-        <i className="bi bi-trophy-fill"></i>
-        <h4>Sport Management</h4>
-      </div>
-
-      {/* ===== Menu ===== */}
+      {/* ================= MENU ================= */}
 
       <nav className="sidebar-menu">
 
@@ -31,22 +68,28 @@ function CustomerSidebar() {
           to="/"
           end
           className={({ isActive }) =>
-            isActive ? "sidebar-link active" : "sidebar-link"
+            isActive
+              ? "sidebar-link active"
+              : "sidebar-link"
           }
         >
           <i className="bi bi-house-door-fill"></i>
           Trang chủ
         </NavLink>
 
+
         <NavLink
           to="/fields"
           className={({ isActive }) =>
-            isActive ? "sidebar-link active" : "sidebar-link"
+            isActive
+              ? "sidebar-link active"
+              : "sidebar-link"
           }
         >
           <i className="bi bi-grid-fill"></i>
           Danh sách sân
         </NavLink>
+
 
         <button
           type="button"
@@ -54,12 +97,16 @@ function CustomerSidebar() {
           onClick={handleComingSoon}
         >
           <i className="bi bi-geo-alt-fill"></i>
-          <span>Bản đồ</span>
+
+          <span>
+            Bản đồ
+          </span>
 
           <span className="badge bg-warning text-dark ms-auto">
             Soon
           </span>
         </button>
+
 
         <button
           type="button"
@@ -67,12 +114,16 @@ function CustomerSidebar() {
           onClick={handleComingSoon}
         >
           <i className="bi bi-heart-fill"></i>
-          <span>Yêu thích</span>
+
+          <span>
+            Yêu thích
+          </span>
 
           <span className="badge bg-warning text-dark ms-auto">
             Soon
           </span>
         </button>
+
 
         <button
           type="button"
@@ -80,7 +131,10 @@ function CustomerSidebar() {
           onClick={handleComingSoon}
         >
           <i className="bi bi-newspaper"></i>
-          <span>Tin tức</span>
+
+          <span>
+            Tin tức
+          </span>
 
           <span className="badge bg-warning text-dark ms-auto">
             Soon
@@ -89,7 +143,11 @@ function CustomerSidebar() {
 
       </nav>
 
+
+      {/* ================= CHƯA LOGIN ================= */}
+
       {!isAuthenticated ? (
+
         <>
 
           <hr />
@@ -98,12 +156,14 @@ function CustomerSidebar() {
             TÀI KHOẢN
           </div>
 
+
           <Link
             to="/login"
             className="btn btn-success w-100 mb-2"
           >
             Đăng nhập
           </Link>
+
 
           <Link
             to="/register"
@@ -113,49 +173,60 @@ function CustomerSidebar() {
           </Link>
 
         </>
+
       ) : (
+
         <>
 
-          {/* ===== Menu Customer ===== */}
+          {/* ================= CUSTOMER MENU ================= */}
 
           <hr />
+
 
           <NavLink
             to="/booking-history"
             className={({ isActive }) =>
-              isActive ? "sidebar-link active" : "sidebar-link"
+              isActive
+                ? "sidebar-link active"
+                : "sidebar-link"
             }
           >
             <i className="bi bi-clock-history"></i>
             Lịch sử đặt
           </NavLink>
 
+
           <NavLink
             to="/profile"
             className={({ isActive }) =>
-              isActive ? "sidebar-link active" : "sidebar-link"
+              isActive
+                ? "sidebar-link active"
+                : "sidebar-link"
             }
           >
             <i className="bi bi-person-fill"></i>
             Hồ sơ
           </NavLink>
 
-          {/* ===== Đẩy xuống cuối ===== */}
+
+          {/* ================= BOTTOM ================= */}
 
           <div className="sidebar-bottom">
 
             <hr />
 
+
             <div className="sidebar-user">
 
               <div className="avatar">
-                {user?.fullName?.charAt(0) || "U"}
+                {avatarLetter}
               </div>
+
 
               <div>
 
                 <strong>
-                  {user?.fullName}
+                  {displayName}
                 </strong>
 
                 <p className="mb-0">
@@ -166,12 +237,13 @@ function CustomerSidebar() {
 
             </div>
 
+
             <button
+              type="button"
               className="btn btn-danger w-100 mt-3"
               onClick={logout}
             >
               <i className="bi bi-box-arrow-right me-2"></i>
-
               Đăng xuất
             </button>
 
@@ -180,13 +252,17 @@ function CustomerSidebar() {
         </>
       )}
 
+
       <ComingSoonToast
         show={showToast}
-        onClose={() => setShowToast(false)}
+        onClose={() =>
+          setShowToast(false)
+        }
       />
 
     </aside>
   );
 }
+
 
 export default CustomerSidebar;

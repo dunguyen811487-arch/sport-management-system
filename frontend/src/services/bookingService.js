@@ -1,33 +1,101 @@
-// src/services/bookingService.js
-
-import API from "../config/api";
+import apiClient from "../api/apiClient";
 
 const bookingService = {
 
-  // Danh sách đặt sân
-  getAll() {
-    return API.get("/bookings");
-  },
+    // ======================================================
+    // GET ALL BOOKINGS
+    // ADMIN / STAFF
+    // ======================================================
 
-  // Chi tiết đặt sân
-  getById(id) {
-    return API.get(`/bookings/${id}`);
-  },
+    getAll() {
 
-  // Đặt sân
-  create(data) {
-    return API.post("/bookings", data);
-  },
+        return apiClient(
+            "/bookings",
+            {
+                method: "GET",
+            }
+        );
+    },
 
-  // Cập nhật
-  update(id, data) {
-    return API.put(`/bookings/${id}`, data);
-  },
 
-  // Hủy đặt sân
-  remove(id) {
-    return API.delete(`/bookings/${id}`);
-  },
+    // ======================================================
+    // GET BOOKING BY ID
+    // ======================================================
+
+    getById(id) {
+
+        if (!id) {
+            throw new Error(
+                "Không xác định được ID booking."
+            );
+        }
+
+        return apiClient(
+            `/bookings/${id}`,
+            {
+                method: "GET",
+            }
+        );
+    },
+
+
+    // ======================================================
+    // CREATE BOOKING
+    // ======================================================
+
+    create(data) {
+
+        return apiClient(
+            "/bookings",
+            {
+                method: "POST",
+                body: JSON.stringify(data),
+            }
+        );
+    },
+
+
+    // ======================================================
+    // UPDATE BOOKING
+    // ======================================================
+
+    update(id, data) {
+
+        if (!id) {
+            throw new Error(
+                "Không xác định được ID booking."
+            );
+        }
+
+        return apiClient(
+            `/bookings/${id}`,
+            {
+                method: "PUT",
+                body: JSON.stringify(data),
+            }
+        );
+    },
+
+
+    // ======================================================
+    // DELETE BOOKING
+    // ======================================================
+
+    remove(id) {
+
+        if (!id) {
+            throw new Error(
+                "Không xác định được ID booking."
+            );
+        }
+
+        return apiClient(
+            `/bookings/${id}`,
+            {
+                method: "DELETE",
+            }
+        );
+    },
 
 };
 

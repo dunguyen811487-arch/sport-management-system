@@ -1,108 +1,43 @@
-/* ===========================
-   AUTH PAGE
-=========================== */
+/* =========================================================
+   SPORT MANAGEMENT SYSTEM
+   COMMON AUTH CSS
+   ========================================================= */
 
-.auth-page {
-    min-height: 100vh;
-    background: linear-gradient(135deg, #2e7d32, #43a047);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 30px;
+/* =========================================================
+   RESET
+   ========================================================= */
+
+* {
+  box-sizing: border-box;
 }
 
-/* ===========================
-   CARD
-=========================== */
-
-.auth-card {
-    width: 100%;
-    max-width: 420px;
-    margin: 0 auto;
-    background: #ffffff;
-    border-radius: 20px;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
-    overflow: hidden;
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
-.auth-body {
-    padding: 40px;
+body {
+  font-family:
+    Inter,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+
+  color: #172033;
+  background: #f5f7fa;
 }
 
-/* ===========================
-   LOGO
-=========================== */
-
-.auth-logo {
-    text-align: center;
-    margin-bottom: 30px;
+button,
+input {
+  font-family: inherit;
 }
 
-.auth-logo i {
-    font-size: 60px;
-    color: #2e7d32;
-}
-
-.auth-logo h3 {
-    margin-top: 15px;
-    font-weight: 700;
-    color: #333;
-}
-
-.auth-logo p {
-    color: #777;
-}
-
-/* ===========================
-   FORM
-=========================== */
-
-.form-label {
-    font-weight: 600;
-}
-
-.input-group-text {
-    background: #f5f5f5;
-}
-
-.form-control {
-    border-radius: 0 8px 8px 0;
-}
-
-.form-control:focus {
-    border-color: #2e7d32;
-    box-shadow: 0 0 0 .2rem rgba(46, 125, 50, .15);
-}
-
-/* ===========================
-   BUTTON
-=========================== */
-
-.auth-btn {
-    width: 100%;
-    padding: 12px;
-    border-radius: 10px;
-    background: #2e7d32;
-    border: none;
-    color: white;
-    font-weight: 600;
-    transition: .3s;
-}
-
-.auth-btn:hover {
-    background: #1b5e20;
-}
-
-/* ===========================
-   LINK
-=========================== */
-
-.auth-link {
-    color: #2e7d32;
-    font-weight: 600;
-    text-decoration: none;
-}
-
-.auth-link:hover {
-    text-decoration: underline;
+a {
+  text-decoration: none;
 }

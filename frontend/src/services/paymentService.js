@@ -1,34 +1,149 @@
-// src/services/paymentService.js
-
-import API from "../config/api";
+import apiClient from "../api/apiClient";
 
 const paymentService = {
 
-  // Danh sách thanh toán
-  getAll() {
-    return API.get("/payments");
-  },
+    // ======================================================
+    // CREATE PAYMENT
+    // data có thể là Object hoặc FormData
+    // ======================================================
 
-  // Chi tiết thanh toán
-  getById(id) {
-    return API.get(`/payments/${id}`);
-  },
+    create: async (
+        data
+    ) => {
 
-  // Thanh toán
-  create(data) {
-    return API.post("/payments", data);
-  },
+        const isFormData =
+            data instanceof FormData;
 
-  // Cập nhật
-  update(id, data) {
-    return API.put(`/payments/${id}`, data);
-  },
 
-  // Xóa
-  remove(id) {
-    return API.delete(`/payments/${id}`);
-  },
+        return apiClient(
+            "/payments",
+            {
+                method:
+                    "POST",
 
+                body:
+                    isFormData
+                        ? data
+                        : JSON.stringify(
+                            data
+                        ),
+            }
+        );
+    },
+
+
+    // ======================================================
+    // GET MY
+    // ======================================================
+
+    getMy: async () => {
+
+        return apiClient(
+            "/payments/my",
+            {
+                method: "GET",
+            }
+        );
+    },
+
+
+    // ======================================================
+    // GET ALL
+    // ======================================================
+
+    getAll: async () => {
+
+        return apiClient(
+            "/payments",
+            {
+                method: "GET",
+            }
+        );
+    },
+
+
+    // ======================================================
+    // GET BY ID
+    // ======================================================
+
+    getById: async (
+        id
+    ) => {
+
+        if (!id) {
+
+            throw new Error(
+                "Không xác định được ID payment."
+            );
+        }
+
+
+        return apiClient(
+            `/payments/${id}`,
+            {
+                method: "GET",
+            }
+        );
+    },
+
+
+    // ======================================================
+    // UPDATE
+    // ======================================================
+
+    update: async (
+        id,
+        data
+    ) => {
+
+        if (!id) {
+
+            throw new Error(
+                "Không xác định được ID payment."
+            );
+        }
+
+
+        return apiClient(
+            `/payments/${id}`,
+            {
+                method:
+                    "PUT",
+
+                body:
+                    JSON.stringify(
+                        data
+                    ),
+            }
+        );
+    },
+
+
+    // ======================================================
+    // DELETE
+    // ======================================================
+
+    remove: async (
+        id
+    ) => {
+
+        if (!id) {
+
+            throw new Error(
+                "Không xác định được ID payment."
+            );
+        }
+
+
+        return apiClient(
+            `/payments/${id}`,
+            {
+                method:
+                    "DELETE",
+            }
+        );
+    },
 };
 
-export default paymentService; 
+
+export default paymentService;

@@ -1,563 +1,1670 @@
-import { useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import {
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
+
+import {
+    useLocation,
+    useNavigate,
+} from "react-router-dom";
+
+import {
+    getBookedSlotsApi,
+} from "../../api/bookingApi";
+
+import formatCurrency
+    from "../../utils/formatCurrency";
 
 import "../../assets/styles/booking-schedule.css";
-import formatCurrency from "../../utils/formatCurrency";
 
-import useAuth from "../../hooks/useAuth";
 
 function BookingSchedule() {
-  const navigate = useNavigate();
 
-  // =============================
-  // User đang đăng nhập
-  // =============================
+    const navigate =
+        useNavigate();
 
-  const { user } = useAuth();
+    const location =
+        useLocation();
 
-  // =============================
-  // Nhận dữ liệu từ FieldDetail
-  // =============================
 
-  const { state } = useLocation();
+    // ==========================================================
+    // FIELD
+    // ==========================================================
 
-  console.log("==============");
-  console.log("BookingSchedule state =", state);
-  console.log("field =", state?.field);
-  console.log(
-    "field JSON =",
-    JSON.stringify(state?.field, null, 2)
-  );
-  console.log("user =", user);
-  console.log("==============");
+    const field =
+        location?.state?.field;
 
-  const field = state?.field;
 
-  // =============================
-  // Kiểm tra sân
-  // =============================
+    // ==========================================================
+    // GET TODAY
+    // ==========================================================
 
-  if (!field) {
-    navigate("/fields");
-    return null;
-  }
+    const getToday = () => {
 
-  // =============================
-  // Khung giờ hoạt động
-  // =============================
+        const date =
+            new Date();
 
-  const timeSlots = [
-    "06:00",
-    "07:00",
-    "08:00",
-    "09:00",
-    "10:00",
-    "11:00",
-    "12:00",
-    "13:00",
-    "14:00",
-    "15:00",
-    "16:00",
-    "17:00",
-    "18:00",
-    "19:00",
-    "20:00",
-    "21:00",
-  ];
+        const year =
+            date.getFullYear();
 
-  // =============================
-  // Mock giờ đã được đặt
-  // =============================
+        const month =
+            String(
+                date.getMonth() + 1
+            ).padStart(
+                2,
+                "0"
+            );
 
-  const bookedSlots = [
-    "08:00",
-    "09:00",
-    "15:00",
-  ];
+        const day =
+            String(
+                date.getDate()
+            ).padStart(
+                2,
+                "0"
+            );
 
-  // =============================
-  // State
-  // =============================
+        return `${year}-${month}-${day}`;
+    };
 
-  const [bookingDate, setBookingDate] =
-    useState(
-      new Date()
-        .toISOString()
-        .split("T")[0]
+
+    // ==========================================================
+    // BOOKING DATE
+    // ==========================================================
+
+    const [
+        bookingDate,
+        setBookingDate,
+    ] = useState(
+        getToday()
     );
 
-  const [selectedSlots, setSelectedSlots] =
-    useState([]);
 
-  // =============================
-  // Chọn giờ
-  // =============================
+    // ==========================================================
+    // CURRENT TIME
+    //
+    // Cập nhật mỗi 30 giây để khung giờ tự động khóa
+    // khi thời gian thực đi qua.
+    // ==========================================================
 
-  const toggleSlot = (slot) => {
-    // Không cho chọn giờ đã đặt
-    if (bookedSlots.includes(slot)) {
-      return;
-    }
+    const [
+        currentTime,
+        setCurrentTime,
+    ] = useState(
+        new Date()
+    );
 
-    // Nếu đã chọn -> bỏ chọn
-    if (selectedSlots.includes(slot)) {
-      setSelectedSlots(
-        selectedSlots.filter(
-          (item) => item !== slot
-        )
-      );
-    } else {
-      // Nếu chưa chọn -> thêm vào
-      setSelectedSlots([
-        ...selectedSlots,
-        slot,
-      ]);
-    }
-  };
 
-  // =============================
-  // Tổng số giờ
-  // =============================
+    useEffect(() => {
 
-  const totalHours =
-    selectedSlots.length;
+        const timer =
+            setInterval(
+                () => {
 
-  // =============================
-  // Tổng tiền
-  // =============================
+                    setCurrentTime(
+                        new Date()
+                    );
 
-  const totalPrice =
-    totalHours * field.pricePerHour;
+                },
+                30 * 1000
+            );
 
-  // =============================
-  // Hiển thị khoảng thời gian
-  // =============================
 
-  const selectedTime = useMemo(() => {
-    if (selectedSlots.length === 0) {
-      return "Chưa chọn";
-    }
+        return () => {
 
-    const sorted = [
-      ...selectedSlots,
-    ].sort();
+            clearInterval(
+                timer
+            );
 
-    const first = sorted[0];
+        };
 
-    const last =
-      timeSlots[
-        timeSlots.indexOf(
-          sorted[sorted.length - 1]
-        ) + 1
-      ] ||
-      sorted[sorted.length - 1];
+    }, []);
 
-    return `${first} - ${last}`;
-  }, [selectedSlots]);
 
-  // =============================
-  // Sang bước xác nhận
-  // =============================
+    // ==========================================================
+    // TIME SLOTS
+    //
+    // 06:00 → 21:00
+    // Mỗi slot = 1 giờ
+    // ==========================================================
 
-  const nextStep = () => {
-    // =============================
-    // Chưa chọn giờ
-    // =============================
+    const timeSlots =
+        useMemo(() => {
 
-    if (selectedSlots.length === 0) {
-      alert(
-        "Vui lòng chọn ít nhất 1 khung giờ."
-      );
+            const slots = [];
 
-      return;
-    }
 
-    // =============================
-    // Kiểm tra đăng nhập
-    // =============================
+            for (
+                let hour = 6;
+                hour <= 21;
+                hour++
+            ) {
 
-    if (!user) {
-      alert(
-        "Vui lòng đăng nhập trước khi đặt sân."
-      );
+                slots.push(
+                    `${String(
+                        hour
+                    ).padStart(
+                        2,
+                        "0"
+                    )}:00`
+                );
+            }
 
-      navigate("/login");
 
-      return;
-    }
+            return slots;
 
-    // =============================
-    // Kiểm tra user.id
-    // =============================
+        }, []);
 
-    if (!user.id) {
-      console.error(
-        "Không tìm thấy ID người dùng:",
-        user
-      );
 
-      alert(
-        "Không xác định được tài khoản đang đăng nhập."
-      );
+    // ==========================================================
+    // STATE
+    // ==========================================================
 
-      return;
-    }
-
-    // =============================
-    // Chuyển sang trang xác nhận
-    // =============================
-
-    navigate("/booking-confirm", {
-      state: {
-        field,
-
-        bookingDate,
-
+    const [
         selectedSlots,
+        setSelectedSlots,
+    ] = useState([]);
 
-        totalHours,
 
-        totalPrice,
+    const [
+        bookedSlots,
+        setBookedSlots,
+    ] = useState([]);
 
-        // =============================
-        // Tài khoản đang đặt sân
-        // =============================
 
-        userId: user.id,
+    const [
+        loadingAvailability,
+        setLoadingAvailability,
+    ] = useState(false);
 
-        user: user,
-      },
-    });
-  };
 
-  return (
-    <div className="container py-4">
+    const [
+        error,
+        setError,
+    ] = useState("");
 
-      {/* ================= Header ================= */}
 
-      <div className="booking-header shadow-sm">
+    const [
+        bookingLoading,
+        setBookingLoading,
+    ] = useState(false);
 
-        <img
-          src={field.image}
-          alt={field.fieldName}
-          className="booking-image"
-        />
 
-        <div className="booking-info">
+    // ==========================================================
+    // FIELD SAFETY
+    // ==========================================================
 
-          <h2>
-            {field.fieldName}
-          </h2>
+    useEffect(() => {
 
-          <span className="badge bg-success mb-2">
-            {field.fieldType}
-          </span>
+        if (!field?._id) {
 
-          <p>
-            <i className="bi bi-grid-fill me-2"></i>
+            navigate(
+                "/fields",
+                {
+                    replace: true,
+                }
+            );
+        }
 
-            {field.subType}
-          </p>
+    }, [
+        field,
+        navigate,
+    ]);
 
-          <p>
-            <i className="bi bi-geo-alt-fill me-2"></i>
 
-            {field.location}
-          </p>
+    // ==========================================================
+    // RESET SELECTED SLOT WHEN DATE CHANGES
+    // ==========================================================
 
-          <h3 className="text-success fw-bold">
+    useEffect(() => {
 
-            {formatCurrency(
-              field.pricePerHour
-            )}
+        setSelectedSlots([]);
 
-            <small className="text-muted">
-              / giờ
-            </small>
+    }, [
+        bookingDate,
+    ]);
 
-          </h3>
 
-        </div>
+    // ==========================================================
+    // LOAD BOOKED SLOTS
+    //
+    // API lấy booking của tất cả tài khoản
+    // theo field + bookingDate
+    // ==========================================================
 
-      </div>
+    useEffect(() => {
 
-      {/* ================= Chọn ngày ================= */}
+        if (
+            !field?._id ||
+            !bookingDate
+        ) {
 
-      <div className="card border-0 shadow-sm mt-4">
+            setBookedSlots([]);
 
-        <div className="card-body">
+            return;
+        }
 
-          <h4 className="mb-3">
-            📅 Chọn ngày đặt sân
-          </h4>
 
-          <input
-            type="date"
-            className="form-control"
-            value={bookingDate}
-            min={
-              new Date()
-                .toISOString()
-                .split("T")[0]
-            }
-            onChange={(e) =>
-              setBookingDate(
-                e.target.value
-              )
-            }
-          />
+        let mounted = true;
 
-        </div>
 
-      </div>
+        const loadBookedSlots =
+            async () => {
 
-      {/* ================= Timeline ================= */}
+                try {
 
-      <div className="card border-0 shadow-sm mt-4">
+                    setLoadingAvailability(
+                        true
+                    );
 
-        <div className="card-body">
+                    setError("");
 
-          <h4 className="mb-4">
-            🕒 Chọn khung giờ
-          </h4>
 
-          <div className="timeline-grid">
+                    const response =
+                        await getBookedSlotsApi(
+                            field._id,
+                            bookingDate
+                        );
 
-            {timeSlots.map(
-              (slot) => {
 
-                const booked =
-                  bookedSlots.includes(
+                    if (
+                        !mounted
+                    ) {
+
+                        return;
+                    }
+
+
+                    const bookings =
+                        Array.isArray(
+                            response?.data
+                        )
+                            ? response.data
+                            : [];
+
+
+                    const slots = [];
+
+
+                    bookings.forEach(
+                        booking => {
+
+                            const status =
+                                String(
+                                    booking?.status ||
+                                    ""
+                                ).toLowerCase();
+
+
+                            // Cancelled không chiếm sân
+
+                            if (
+                                status ===
+                                "cancelled"
+                            ) {
+
+                                return;
+                            }
+
+
+                            const startTime =
+                                booking?.startTime;
+
+
+                            const endTime =
+                                booking?.endTime;
+
+
+                            if (
+                                !startTime ||
+                                !endTime
+                            ) {
+
+                                return;
+                            }
+
+
+                            const startHour =
+                                Number(
+                                    startTime.split(
+                                        ":"
+                                    )[0]
+                                );
+
+
+                            const endHour =
+                                Number(
+                                    endTime.split(
+                                        ":"
+                                    )[0]
+                                );
+
+
+                            if (
+                                Number.isNaN(
+                                    startHour
+                                ) ||
+                                Number.isNaN(
+                                    endHour
+                                )
+                            ) {
+
+                                return;
+                            }
+
+
+                            for (
+                                let hour =
+                                    startHour;
+                                hour <
+                                    endHour;
+                                hour++
+                            ) {
+
+                                slots.push(
+                                    `${String(
+                                        hour
+                                    ).padStart(
+                                        2,
+                                        "0"
+                                    )}:00`
+                                );
+                            }
+
+                        }
+                    );
+
+
+                    setBookedSlots(
+                        [
+                            ...new Set(
+                                slots
+                            ),
+                        ]
+                    );
+
+                } catch (err) {
+
+                    console.error(
+                        "Load booked slots error:",
+                        err
+                    );
+
+
+                    if (
+                        mounted
+                    ) {
+
+                        setBookedSlots([]);
+
+                        setError(
+                            err?.data?.message ||
+                            err?.message ||
+                            "Không thể kiểm tra khung giờ đã đặt."
+                        );
+                    }
+
+                } finally {
+
+                    if (
+                        mounted
+                    ) {
+
+                        setLoadingAvailability(
+                            false
+                        );
+                    }
+                }
+            };
+
+
+        loadBookedSlots();
+
+
+        return () => {
+
+            mounted = false;
+
+        };
+
+    }, [
+        field?._id,
+        bookingDate,
+    ]);
+
+
+    // ==========================================================
+    // SLOT -> HOUR
+    // ==========================================================
+
+    const getHourFromSlot =
+        (
+            slot
+        ) => {
+
+            return Number(
+                String(
                     slot
-                  );
+                ).split(":")[0]
+            );
+        };
 
-                const selected =
-                  selectedSlots.includes(
+
+    // ==========================================================
+    // CHECK BOOKED
+    // ==========================================================
+
+    const isSlotBooked =
+        (
+            slot
+        ) => {
+
+            return bookedSlots.includes(
+                slot
+            );
+        };
+
+
+    // ==========================================================
+    // CHECK SELECTED
+    // ==========================================================
+
+    const isSlotSelected =
+        (
+            slot
+        ) => {
+
+            return selectedSlots.includes(
+                slot
+            );
+        };
+
+
+    // ==========================================================
+    // CHECK PAST SLOT
+    //
+    // Chỉ khóa khi chọn ngày hôm nay.
+    //
+    // Ví dụ:
+    // Hiện tại 19:10
+    // 18:00 -> khóa
+    // 19:00 -> khóa
+    // 20:00 -> còn chọn
+    //
+    // Vì slot 19:00 đã bắt đầu rồi thì không cho đặt nữa.
+    // ==========================================================
+
+    const isSlotPast =
+        (
+            slot
+        ) => {
+
+            if (
+                bookingDate !==
+                getToday()
+            ) {
+
+                return false;
+            }
+
+
+            const slotHour =
+                getHourFromSlot(
                     slot
-                  );
+                );
+
+
+            const now =
+                currentTime;
+
+
+            const currentHour =
+                now.getHours();
+
+
+            const currentMinute =
+                now.getMinutes();
+
+
+            // Slot đã bắt đầu hoặc đã qua
+
+            if (
+                slotHour <
+                currentHour
+            ) {
+
+                return true;
+            }
+
+
+            if (
+                slotHour ===
+                currentHour
+            ) {
 
                 return (
-                  <button
-                    key={slot}
-                    type="button"
-                    disabled={booked}
-                    className={`
-                      time-slot
-                      ${booked ? "booked" : ""}
-                      ${
-                        selected
-                          ? "selected"
-                          : ""
-                      }
-                    `}
-                    onClick={() =>
-                      toggleSlot(slot)
-                    }
-                  >
-                    {slot}
-                  </button>
+                    currentMinute >=
+                    0
                 );
-              }
-            )}
+            }
 
-          </div>
 
-          {/* ================= Chú thích ================= */}
+            return false;
+        };
 
-          <div className="d-flex gap-4 mt-4">
 
-            <div className="legend-item">
+    // ==========================================================
+    // CHECK UNAVAILABLE
+    // ==========================================================
 
-              <span className="legend available"></span>
+    const isSlotUnavailable =
+        (
+            slot
+        ) => {
 
-              Còn trống
+            return (
+                isSlotBooked(
+                    slot
+                ) ||
+                isSlotPast(
+                    slot
+                )
+            );
+        };
+
+
+    // ==========================================================
+    // CHECK CONSECUTIVE
+    // ==========================================================
+
+    const areSlotsConsecutive =
+        (
+            slots
+        ) => {
+
+            if (
+                slots.length <= 1
+            ) {
+
+                return true;
+            }
+
+
+            const sorted =
+                [
+                    ...slots,
+                ].sort(
+                    (
+                        a,
+                        b
+                    ) =>
+                        getHourFromSlot(
+                            a
+                        ) -
+                        getHourFromSlot(
+                            b
+                        )
+                );
+
+
+            for (
+                let i = 1;
+                i < sorted.length;
+                i++
+            ) {
+
+                const previous =
+                    getHourFromSlot(
+                        sorted[i - 1]
+                    );
+
+
+                const current =
+                    getHourFromSlot(
+                        sorted[i]
+                    );
+
+
+                if (
+                    current -
+                    previous !==
+                    1
+                ) {
+
+                    return false;
+                }
+            }
+
+
+            return true;
+        };
+
+
+    // ==========================================================
+    // HANDLE SLOT CLICK
+    // ==========================================================
+
+    const handleSlotClick =
+        (
+            slot
+        ) => {
+
+            // Không cho click slot đã đặt hoặc đã qua
+
+            if (
+                isSlotUnavailable(
+                    slot
+                )
+            ) {
+
+                return;
+            }
+
+
+            // --------------------------------------------------
+            // BỎ CHỌN
+            // --------------------------------------------------
+
+            if (
+                isSlotSelected(
+                    slot
+                )
+            ) {
+
+                setSelectedSlots(
+                    previous =>
+                        previous.filter(
+                            item =>
+                                item !==
+                                slot
+                        )
+                );
+
+                return;
+            }
+
+
+            // --------------------------------------------------
+            // THÊM SLOT
+            // --------------------------------------------------
+
+            const nextSlots =
+                [
+                    ...selectedSlots,
+                    slot,
+                ].sort(
+                    (
+                        a,
+                        b
+                    ) =>
+                        getHourFromSlot(
+                            a
+                        ) -
+                        getHourFromSlot(
+                            b
+                        )
+                );
+
+
+            // --------------------------------------------------
+            // KHÔNG CHO CHỌN RỜI RẠC
+            // --------------------------------------------------
+
+            if (
+                !areSlotsConsecutive(
+                    nextSlots
+                )
+            ) {
+
+                alert(
+                    "Bạn chỉ có thể chọn các khung giờ liên tiếp."
+                );
+
+                return;
+            }
+
+
+            // --------------------------------------------------
+            // KHÔNG CHO CHỌN SLOT ĐÃ BỊ ĐẶT / ĐÃ QUA
+            // --------------------------------------------------
+
+            if (
+                nextSlots.some(
+                    item =>
+                        isSlotUnavailable(
+                            item
+                        )
+                )
+            ) {
+
+                alert(
+                    "Khung giờ bạn chọn không còn khả dụng."
+                );
+
+                return;
+            }
+
+
+            setSelectedSlots(
+                nextSlots
+            );
+        };
+
+
+    // ==========================================================
+    // START TIME
+    // ==========================================================
+
+    const startTime =
+        selectedSlots.length > 0
+            ? [
+                ...selectedSlots,
+            ].sort(
+                (
+                    a,
+                    b
+                ) =>
+                    getHourFromSlot(
+                        a
+                    ) -
+                    getHourFromSlot(
+                        b
+                    )
+            )[0]
+            : "";
+
+
+    // ==========================================================
+    // END TIME
+    // ==========================================================
+
+    const endTime =
+        selectedSlots.length > 0
+            ? (() => {
+
+                const sorted =
+                    [
+                        ...selectedSlots,
+                    ].sort(
+                        (
+                            a,
+                            b
+                        ) =>
+                            getHourFromSlot(
+                                a
+                            ) -
+                            getHourFromSlot(
+                                b
+                            )
+                    );
+
+
+                const last =
+                    getHourFromSlot(
+                        sorted[
+                            sorted.length - 1
+                        ]
+                    );
+
+
+                return `${String(
+                    last + 1
+                ).padStart(
+                    2,
+                    "0"
+                )}:00`;
+
+            })()
+            : "";
+
+
+    // ==========================================================
+    // TOTAL HOURS
+    // ==========================================================
+
+    const totalHours =
+        selectedSlots.length;
+
+
+    // ==========================================================
+    // TOTAL PRICE
+    // ==========================================================
+
+    const totalPrice =
+        totalHours *
+        Number(
+            field?.pricePerHour ||
+            0
+        );
+
+
+    // ==========================================================
+    // CONTINUE
+    // ==========================================================
+
+    const handleContinue =
+        () => {
+
+            if (!field?._id) {
+
+                alert(
+                    "Không xác định được sân."
+                );
+
+                return;
+            }
+
+
+            if (!bookingDate) {
+
+                alert(
+                    "Vui lòng chọn ngày đặt sân."
+                );
+
+                return;
+            }
+
+
+            if (
+                selectedSlots.length ===
+                0
+            ) {
+
+                alert(
+                    "Vui lòng chọn ít nhất một khung giờ."
+                );
+
+                return;
+            }
+
+
+            // --------------------------------------------------
+            // KIỂM TRA LẠI THỜI GIAN
+            // --------------------------------------------------
+
+            if (
+                selectedSlots.some(
+                    slot =>
+                        isSlotUnavailable(
+                            slot
+                        )
+                )
+            ) {
+
+                alert(
+                    "Một hoặc nhiều khung giờ không còn khả dụng."
+                );
+
+                setSelectedSlots([]);
+
+                return;
+            }
+
+
+            // --------------------------------------------------
+            // KIỂM TRA LIÊN TIẾP
+            // --------------------------------------------------
+
+            if (
+                !areSlotsConsecutive(
+                    selectedSlots
+                )
+            ) {
+
+                alert(
+                    "Các khung giờ phải liên tiếp."
+                );
+
+                return;
+            }
+
+
+            setBookingLoading(
+                true
+            );
+
+
+            navigate(
+                "/booking-confirm",
+                {
+                    state: {
+
+                        field,
+
+                        bookingDate,
+
+                        startTime,
+
+                        endTime,
+
+                        selectedSlots,
+
+                        totalHours,
+
+                        totalPrice,
+
+                    },
+                }
+            );
+
+
+            setBookingLoading(
+                false
+            );
+        };
+
+
+    // ==========================================================
+    // FORMAT DATE
+    // ==========================================================
+
+    const formatSelectedDate =
+        (
+            value
+        ) => {
+
+            if (!value) {
+                return "-";
+            }
+
+
+            const date =
+                new Date(
+                    `${value}T00:00:00`
+                );
+
+
+            if (
+                Number.isNaN(
+                    date.getTime()
+                )
+            ) {
+
+                return value;
+            }
+
+
+            return date.toLocaleDateString(
+                "vi-VN"
+            );
+        };
+
+
+    // ==========================================================
+    // FIELD IMAGE
+    // ==========================================================
+
+    const fieldImage =
+        (() => {
+
+            if (
+                !field?.image
+            ) {
+
+                return "";
+            }
+
+
+            if (
+                field.image.startsWith(
+                    "http://"
+                ) ||
+                field.image.startsWith(
+                    "https://"
+                )
+            ) {
+
+                return field.image;
+            }
+
+
+            return (
+                `http://localhost:5000${field.image}`
+            );
+
+        })();
+
+
+    // ==========================================================
+    // FIELD SAFETY
+    // ==========================================================
+
+    if (!field) {
+
+        return null;
+    }
+
+
+    // ==========================================================
+    // RENDER
+    // ==========================================================
+
+    return (
+
+        <div className="container-fluid py-4">
+
+            {/* ==================================================
+                HEADER
+            ================================================== */}
+
+            <div className="d-flex justify-content-between align-items-center mb-4">
+
+                <div>
+
+                    <h2 className="fw-bold mb-1">
+                        Đặt sân
+                    </h2>
+
+
+                    <p className="text-muted mb-0">
+                        Chọn ngày và khung giờ bạn muốn đặt
+                    </p>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() =>
+                        navigate(
+                            "/fields"
+                        )
+                    }
+                >
+
+                    <i className="bi bi-arrow-left me-2"></i>
+
+                    Quay lại
+
+                </button>
 
             </div>
 
-            <div className="legend-item">
 
-              <span className="legend selected"></span>
+            {/* ==================================================
+                FIELD INFORMATION
+            ================================================== */}
 
-              Đang chọn
+            <div className="card border-0 shadow-sm mb-4">
+
+                <div className="card-body">
+
+                    <div className="row align-items-center">
+
+                        {/* IMAGE */}
+
+                        <div className="col-md-3">
+
+                            {
+                                fieldImage ? (
+
+                                    <img
+                                        src={
+                                            fieldImage
+                                        }
+                                        alt={
+                                            field?.fieldName ||
+                                            "Sân"
+                                        }
+                                        className="img-fluid rounded"
+                                        style={{
+                                            height:
+                                                "180px",
+
+                                            width:
+                                                "100%",
+
+                                            objectFit:
+                                                "cover",
+                                        }}
+                                        onError={(
+                                            e
+                                        ) => {
+
+                                            e.currentTarget.style.display =
+                                                "none";
+
+                                        }}
+                                    />
+
+                                ) : (
+
+                                    <div
+                                        className="bg-light rounded d-flex align-items-center justify-content-center"
+                                        style={{
+                                            height:
+                                                "180px",
+                                        }}
+                                    >
+
+                                        <i
+                                            className="bi bi-building text-muted"
+                                            style={{
+                                                fontSize:
+                                                    "60px",
+                                            }}
+                                        ></i>
+
+                                    </div>
+
+                                )
+                            }
+
+                        </div>
+
+
+                        {/* INFO */}
+
+                        <div className="col-md-9">
+
+                            <h3 className="fw-bold">
+
+                                {
+                                    field?.fieldName ||
+                                    "Sân thể thao"
+                                }
+
+                            </h3>
+
+
+                            <p className="text-muted mb-2">
+
+                                <i className="bi bi-geo-alt-fill me-2"></i>
+
+                                {
+                                    field?.location ||
+                                    "Chưa cập nhật"
+                                }
+
+                            </p>
+
+
+                            <p className="text-muted mb-2">
+
+                                {
+                                    field?.fieldTypeId?.name ||
+                                    "Chưa phân loại"
+                                }
+
+                            </p>
+
+
+                            <h4 className="text-success mb-0">
+
+                                {
+                                    formatCurrency(
+                                        field?.pricePerHour ||
+                                        0
+                                    )
+                                }
+
+                                <small className="text-muted">
+                                    {" "}/ giờ
+                                </small>
+
+                            </h4>
+
+                        </div>
+
+                    </div>
+
+                </div>
 
             </div>
 
-            <div className="legend-item">
 
-              <span className="legend booked"></span>
+            {/* ==================================================
+                DATE
+            ================================================== */}
 
-              Đã đặt
+            <div className="card border-0 shadow-sm mb-4">
+
+                <div className="card-body">
+
+                    <h4 className="fw-bold mb-3">
+                        📅 Chọn ngày đặt sân
+                    </h4>
+
+
+                    <input
+                        type="date"
+                        className="form-control form-control-lg"
+                        value={
+                            bookingDate
+                        }
+                        min={
+                            getToday()
+                        }
+                        onChange={
+                            e =>
+                                setBookingDate(
+                                    e.target.value
+                                )
+                        }
+                    />
+
+
+                    <div className="text-muted mt-2">
+
+                        Ngày đã chọn:{" "}
+
+                        <strong>
+
+                            {
+                                formatSelectedDate(
+                                    bookingDate
+                                )
+                            }
+
+                        </strong>
+
+                    </div>
+
+                </div>
 
             </div>
 
-          </div>
+
+            {/* ==================================================
+                ERROR
+            ================================================== */}
+
+            {
+                error && (
+
+                    <div className="alert alert-danger">
+
+                        <i className="bi bi-exclamation-triangle-fill me-2"></i>
+
+                        {error}
+
+                    </div>
+                )
+            }
+
+
+            {/* ==================================================
+                TIME SLOTS
+            ================================================== */}
+
+            <div className="card border-0 shadow-sm mb-4">
+
+                <div className="card-body">
+
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+
+                        <h4 className="fw-bold mb-0">
+                            🕐 Chọn khung giờ
+                        </h4>
+
+
+                        {
+                            loadingAvailability && (
+
+                                <div className="d-flex align-items-center text-muted">
+
+                                    <div
+                                        className="spinner-border spinner-border-sm me-2"
+                                        role="status"
+                                    />
+
+                                    Đang kiểm tra lịch sân...
+
+                                </div>
+                            )
+                        }
+
+                    </div>
+
+
+                    <div className="row g-3">
+
+                        {
+                            timeSlots.map(
+                                (
+                                    time
+                                ) => {
+
+                                    const booked =
+                                        isSlotBooked(
+                                            time
+                                        );
+
+
+                                    const past =
+                                        isSlotPast(
+                                            time
+                                        );
+
+
+                                    const unavailable =
+                                        booked ||
+                                        past;
+
+
+                                    const selected =
+                                        isSlotSelected(
+                                            time
+                                        );
+
+
+                                    return (
+
+                                        <div
+                                            className="col-6 col-md-4 col-lg-3"
+                                            key={
+                                                time
+                                            }
+                                        >
+
+                                            <button
+                                                type="button"
+
+                                                className={
+                                                    unavailable
+                                                        ? "booking-time-slot booked"
+                                                        : selected
+                                                        ? "booking-time-slot selected"
+                                                        : "booking-time-slot"
+                                                }
+
+                                                disabled={
+                                                    unavailable ||
+                                                    loadingAvailability
+                                                }
+
+                                                onClick={() =>
+                                                    handleSlotClick(
+                                                        time
+                                                    )
+                                                }
+                                            >
+
+                                                <span className="booking-time">
+
+                                                    {
+                                                        time
+                                                    }
+
+                                                </span>
+
+
+                                                <span className="booking-time-status">
+
+                                                    {
+                                                        booked
+                                                            ? "Đã đặt"
+                                                            : past
+                                                            ? "Đã qua"
+                                                            : selected
+                                                            ? "Đang chọn"
+                                                            : "Còn trống"
+                                                    }
+
+                                                </span>
+
+                                            </button>
+
+                                        </div>
+
+                                    );
+                                }
+                            )
+                        }
+
+                    </div>
+
+
+                    {/* ==================================================
+                        LEGEND
+                    ================================================== */}
+
+                    <div className="d-flex flex-wrap gap-4 mt-4">
+
+                        <div className="d-flex align-items-center">
+
+                            <span
+                                className="booking-legend-box available"
+                            ></span>
+
+                            <span>
+                                Còn trống
+                            </span>
+
+                        </div>
+
+
+                        <div className="d-flex align-items-center">
+
+                            <span
+                                className="booking-legend-box selected"
+                            ></span>
+
+                            <span>
+                                Đang chọn
+                            </span>
+
+                        </div>
+
+
+                        <div className="d-flex align-items-center">
+
+                            <span
+                                className="booking-legend-box booked"
+                            ></span>
+
+                            <span>
+                                Đã có người đặt / Đã qua
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {/* ==================================================
+                SUMMARY
+            ================================================== */}
+
+            <div className="card border-0 shadow-sm mb-4">
+
+                <div className="card-body">
+
+                    <h4 className="fw-bold mb-4">
+                        📝 Thông tin đặt sân
+                    </h4>
+
+
+                    <div className="row">
+
+                        <div className="col-md-4 mb-3">
+
+                            <small className="text-muted d-block">
+                                Ngày
+                            </small>
+
+
+                            <strong>
+
+                                {
+                                    formatSelectedDate(
+                                        bookingDate
+                                    )
+                                }
+
+                            </strong>
+
+                        </div>
+
+
+                        <div className="col-md-4 mb-3">
+
+                            <small className="text-muted d-block">
+                                Khung giờ
+                            </small>
+
+
+                            <strong>
+
+                                {
+                                    startTime ||
+                                    "-"
+                                }
+
+                                {" - "}
+
+                                {
+                                    endTime ||
+                                    "-"
+                                }
+
+                            </strong>
+
+                        </div>
+
+
+                        <div className="col-md-4 mb-3">
+
+                            <small className="text-muted d-block">
+                                Thời lượng
+                            </small>
+
+
+                            <strong>
+
+                                {
+                                    totalHours
+                                }{" "}
+                                giờ
+
+                            </strong>
+
+                        </div>
+
+
+                        <div className="col-md-4">
+
+                            <small className="text-muted d-block">
+                                Đơn giá
+                            </small>
+
+
+                            <strong>
+
+                                {
+                                    formatCurrency(
+                                        field?.pricePerHour ||
+                                        0
+                                    )
+                                }
+
+                                {" / giờ"}
+
+                            </strong>
+
+                        </div>
+
+
+                        <div className="col-md-4">
+
+                            <small className="text-muted d-block">
+                                Tổng tiền
+                            </small>
+
+
+                            <h4 className="text-success mb-0">
+
+                                {
+                                    formatCurrency(
+                                        totalPrice
+                                    )
+                                }
+
+                            </h4>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {/* ==================================================
+                BUTTONS
+            ================================================== */}
+
+            <div className="d-flex justify-content-end gap-2">
+
+                <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-lg"
+                    onClick={() =>
+                        navigate(
+                            "/fields"
+                        )
+                    }
+                >
+
+                    Hủy
+
+                </button>
+
+
+                <button
+                    type="button"
+                    className="btn btn-success btn-lg"
+                    disabled={
+                        bookingLoading ||
+                        loadingAvailability ||
+                        selectedSlots.length ===
+                            0 ||
+                        selectedSlots.some(
+                            slot =>
+                                isSlotUnavailable(
+                                    slot
+                                )
+                        )
+                    }
+                    onClick={
+                        handleContinue
+                    }
+                >
+
+                    {
+                        bookingLoading ? (
+
+                            <>
+                                <span
+                                    className="spinner-border spinner-border-sm me-2"
+                                />
+
+                                Đang xử lý...
+                            </>
+
+                        ) : (
+
+                            <>
+                                Tiếp tục
+
+                                <i className="bi bi-arrow-right ms-2"></i>
+                            </>
+                        )
+                    }
+
+                </button>
+
+            </div>
 
         </div>
-
-      </div>
-
-      {/* ================= Tóm tắt đặt sân ================= */}
-
-      <div className="card border-0 shadow-sm mt-4">
-
-        <div className="card-body">
-
-          <h4 className="mb-4">
-            📋 Thông tin đặt sân
-          </h4>
-
-          <div className="row">
-
-            <div className="col-md-6">
-
-              <table className="table">
-
-                <tbody>
-
-                  <tr>
-                    <th>
-                      Tên sân
-                    </th>
-
-                    <td>
-                      {field.fieldName}
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <th>
-                      Loại sân
-                    </th>
-
-                    <td>
-                      {field.subType}
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <th>
-                      Ngày đặt
-                    </th>
-
-                    <td>
-                      {bookingDate}
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <th>
-                      Khung giờ
-                    </th>
-
-                    <td>
-                      {selectedTime}
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <th>
-                      Số giờ
-                    </th>
-
-                    <td>
-                      {totalHours} giờ
-                    </td>
-                  </tr>
-
-                </tbody>
-
-              </table>
-
-            </div>
-
-            <div className="col-md-6">
-
-              <div className="price-box">
-
-                <h5 className="mb-3">
-                  💰 Chi phí
-                </h5>
-
-                <div className="d-flex justify-content-between mb-2">
-
-                  <span>
-                    Đơn giá
-                  </span>
-
-                  <strong>
-                    {formatCurrency(
-                      field.pricePerHour
-                    )}
-                  </strong>
-
-                </div>
-
-                <div className="d-flex justify-content-between mb-2">
-
-                  <span>
-                    Số giờ
-                  </span>
-
-                  <strong>
-                    {totalHours}
-                  </strong>
-
-                </div>
-
-                <hr />
-
-                <div className="d-flex justify-content-between">
-
-                  <h4>
-                    Tổng cộng
-                  </h4>
-
-                  <h3 className="text-success">
-
-                    {formatCurrency(
-                      totalPrice
-                    )}
-
-                  </h3>
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* ================= Button ================= */}
-
-      <div className="d-flex justify-content-between mt-4">
-
-        <button
-          type="button"
-          className="btn btn-outline-secondary btn-lg"
-          onClick={() =>
-            navigate(-1)
-          }
-        >
-          ← Quay lại
-        </button>
-
-        <button
-          type="button"
-          className="btn btn-success btn-lg"
-          onClick={nextStep}
-        >
-          Tiếp tục →
-        </button>
-
-      </div>
-
-    </div>
-  );
+    );
 }
+
 
 export default BookingSchedule;

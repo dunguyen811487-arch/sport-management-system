@@ -1,376 +1,644 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import "../../assets/styles/auth.css";
 
+import "../../assets/styles/auth.css";
+import "../../assets/styles/login.css";
 import useAuth from "../../hooks/useAuth";
 
 function Login() {
   const navigate = useNavigate();
 
-  const { login } = useAuth();
+  // ==========================================================
+  // AUTH CONTEXT
+  // ==========================================================
+
+  const { loginWithApi } = useAuth();
+
+  // ==========================================================
+  // STATE
+  // ==========================================================
 
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
-
   const [loading, setLoading] = useState(false);
 
-  // =============================
-  // Đăng nhập
-  // =============================
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  // ==========================================================
+  // ĐĂNG NHẬP
+  // ==========================================================
 
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    // =============================
-    // Kiểm tra số điện thoại
-    // =============================
+    setError("");
+    setSuccess("");
 
-    if (!phone.trim()) {
-      alert("Vui lòng nhập số điện thoại!");
+    // ========================================================
+    // KIỂM TRA SỐ ĐIỆN THOẠI
+    // ========================================================
+
+    const cleanPhone = phone.trim();
+
+    if (!cleanPhone) {
+      setError("Vui lòng nhập số điện thoại.");
       return;
     }
 
-    if (!/^[0-9]{10}$/.test(phone)) {
-      alert("Số điện thoại không hợp lệ!");
+    if (!/^[0-9]{10}$/.test(cleanPhone)) {
+      setError("Số điện thoại phải gồm đúng 10 chữ số.");
       return;
     }
 
-    // =============================
-    // Kiểm tra mật khẩu
-    // =============================
+    // ========================================================
+    // KIỂM TRA MẬT KHẨU
+    // ========================================================
 
     if (!password.trim()) {
-      alert("Vui lòng nhập mật khẩu!");
+      setError("Vui lòng nhập mật khẩu.");
       return;
     }
 
     try {
       setLoading(true);
 
-      // =============================
-      // Lấy danh sách user
-      // =============================
+      // ======================================================
+      // GỌI BACKEND THÔNG QUA AUTH CONTEXT
+      //
+      // loginWithApi()
+      //      ↓
+      // loginApi()
+      //      ↓
+      // apiClient()
+      //      ↓
+      // Axios
+      //      ↓
+      // POST /api/auth/login
+      // ======================================================
 
-      const savedUsers =
-        localStorage.getItem("users");
+      console.log(
+        "Login.jsx - Đang gọi API login:",
+        cleanPhone
+      );
 
-      const users = savedUsers
-        ? JSON.parse(savedUsers)
-        : [];
+      const result = await loginWithApi(
+    cleanPhone,
+    password
+);
 
-      // =============================
-      // Tìm user
-      // =============================
+console.log(
+    "Login result:",
+    result
+);
 
-      // =============================
-// Tìm user
-// =============================
+console.log(
+    "TOKEN AFTER LOGIN:",
+    localStorage.getItem("token")
+);
 
-// Tài khoản Admin tạm thời
-const ADMIN_ACCOUNT = {
-  id: "admin-001",
-  fullName: "Quản trị viên",
-  name: "Quản trị viên",
-  phone: "0900000000",
-  email: "admin@sportmanagement.com",
-  password: "admin123",
-  role: "admin",
-};
+      console.log(
+        "Login.jsx - Kết quả login:",
+        result
+      );
 
-let foundUser = null;
+      // ======================================================
+      // API LOGIN THẤT BẠI
+      // ======================================================
 
-// =============================
-// Kiểm tra tài khoản Admin
-// =============================
-
-if (
-  phone === ADMIN_ACCOUNT.phone &&
-  password === ADMIN_ACCOUNT.password
-) {
-  foundUser = ADMIN_ACCOUNT;
-} else {
-  // =============================
-  // Kiểm tra user trong localStorage
-  // =============================
-
-  foundUser = users.find(
-    (item) =>
-      item.phone === phone &&
-      item.password === password
-  );
-}
-
-      // =============================
-      // Không tìm thấy
-      // =============================
-
-      if (!foundUser) {
-        alert(
-          "Sai số điện thoại hoặc mật khẩu!"
+      if (!result?.success) {
+        setError(
+          result?.message ||
+            "Sai số điện thoại hoặc mật khẩu."
         );
 
         return;
       }
 
-      // =============================
-      // Tạo user dùng cho AuthContext
-      // =============================
+      // ======================================================
+      // KIỂM TRA USER
+      // ======================================================
 
-      const user = {
-        id: foundUser.id,
+      if (!result?.user) {
+        console.error(
+          "Login.jsx - Backend không trả về user:",
+          result
+        );
 
-        fullName:
-          foundUser.fullName ||
-          foundUser.name ||
-          "",
+        setError(
+          "Đăng nhập thất bại: Không nhận được thông tin người dùng."
+        );
 
-        name:
-          foundUser.name ||
-          foundUser.fullName ||
-          "",
+        return;
+      }
 
-        phone: foundUser.phone,
+      // ======================================================
+      // KIỂM TRA TOKEN
+      // ======================================================
 
-        email: foundUser.email,
+      if (!result?.token) {
+        console.error(
+          "Login.jsx - Backend không trả về token:",
+          result
+        );
 
-        dateOfBirth:
-          foundUser.dateOfBirth || "",
+        setError(
+          "Đăng nhập thất bại: Không nhận được JWT token."
+        );
 
-        gender:
-          foundUser.gender || "",
+        return;
+      }
 
-        address:
-          foundUser.address || "",
+      // ======================================================
+      // USER ĐÃ ĐƯỢC AUTHCONTEXT CHUẨN HÓA
+      // ======================================================
 
-        role:
-          foundUser.role || "customer",
-      };
-
-      // =============================
-      // Fake token
-      // =============================
-
-      const token = "fake-token";
-
-      // =============================
-      // Lưu vào AuthContext
-      // =============================
-
-      login(user, token);
+      const user = result.user;
 
       console.log(
-        "Đăng nhập thành công:",
+        "Login.jsx - Đăng nhập API thành công:",
         user
       );
 
-      // =============================
-      // Phân quyền
-      // =============================
-
-      switch (user.role) {
-  case "admin":
-    navigate("/admin/dashboard");
-    break;
-
-  case "staff":
-    navigate("/staff/dashboard");
-    break;
-
-  case "customer":
-  default:
-    navigate("/");
-    break;
-}
-
-    } catch (error) {
-      console.error(error);
-
-      alert(
-        "Có lỗi xảy ra khi đăng nhập!"
+      console.log(
+        "Login.jsx - Role:",
+        user.role
       );
 
+      // ======================================================
+      // KIỂM TRA ROLE
+      // ======================================================
+
+      const validRoles = [
+        "admin",
+        "staff",
+        "customer",
+      ];
+
+      const normalizedRole = user.role
+        ? String(user.role).toLowerCase()
+        : "";
+
+      if (!validRoles.includes(normalizedRole)) {
+        console.error(
+          "Login.jsx - Role không hợp lệ:",
+          normalizedRole
+        );
+
+        setError(
+          "Tài khoản không có quyền truy cập hợp lệ."
+        );
+
+        return;
+      }
+
+      // ======================================================
+      // LOGIN THÀNH CÔNG
+      // ======================================================
+
+      setSuccess(
+        "Đăng nhập thành công. Đang chuyển trang..."
+      );
+
+      // ======================================================
+      // ĐIỀU HƯỚNG THEO ROLE
+      // ======================================================
+
+      if (normalizedRole === "admin") {
+        navigate(
+          "/admin/dashboard",
+          {
+            replace: true,
+          }
+        );
+
+        return;
+      }
+
+      if (normalizedRole === "staff") {
+        navigate(
+          "/staff/dashboard",
+          {
+            replace: true,
+          }
+        );
+
+        return;
+      }
+
+      if (normalizedRole === "customer") {
+        navigate(
+          "/",
+          {
+            replace: true,
+          }
+        );
+
+        return;
+      }
+
+    } catch (error) {
+      console.error(
+        "Login.jsx - Login error:",
+        error
+      );
+
+      setError(
+        error?.message ||
+          "Không thể kết nối đến backend. Hãy kiểm tra server."
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  // ==========================================================
+  // RENDER
+  // ==========================================================
+
   return (
-    <div className="auth-card">
+    <div className="login-page">
 
-      <div className="auth-body">
+      {/* ====================================================
+          LEFT - BRANDING
+      ==================================================== */}
 
-        {/* =============================
-            Logo
-        ============================== */}
+      <section className="login-visual">
 
-        <div className="auth-logo">
+        <div className="visual-overlay"></div>
 
-          <i className="bi bi-trophy-fill"></i>
+        <div className="visual-content">
 
-          <h3>
-            Sport Management System
-          </h3>
+          <div className="brand-badge">
+            <i className="bi bi-trophy-fill"></i>
+          </div>
 
-          <p>
-            Đăng nhập vào hệ thống
+          <h1>
+            Sport
+            <span>
+              Management
+            </span>
+          </h1>
+
+          <p className="visual-description">
+            Quản lý sân thể thao,
+            lịch đặt sân và người dùng
+            một cách đơn giản,
+            nhanh chóng và chuyên nghiệp.
           </p>
+
+          <div className="sport-icons">
+
+            <div className="sport-icon">
+              <i className="bi bi-trophy"></i>
+              <span>
+                Thể thao
+              </span>
+            </div>
+
+            <div className="sport-icon">
+              <i className="bi bi-calendar-check"></i>
+              <span>
+                Đặt sân
+              </span>
+            </div>
+
+            <div className="sport-icon">
+              <i className="bi bi-people"></i>
+              <span>
+                Quản lý
+              </span>
+            </div>
+
+          </div>
 
         </div>
 
-        {/* =============================
-            Form
-        ============================== */}
+      </section>
 
-        <form onSubmit={handleLogin}>
 
-          {/* Số điện thoại */}
+      {/* ====================================================
+          RIGHT - LOGIN
+      ==================================================== */}
 
-          <div className="mb-3">
+      <section className="login-panel">
 
-            <label className="form-label">
-              Số điện thoại
-            </label>
+        <div className="login-card">
 
-            <div className="input-group">
+          {/* ==================================================
+              LOGO MOBILE
+          ================================================== */}
 
-              <span className="input-group-text">
+          <div className="mobile-brand">
 
-                <i className="bi bi-phone-fill"></i>
+            <div className="mobile-brand-icon">
+              <i className="bi bi-trophy-fill"></i>
+            </div>
 
+            <div>
+
+              <strong>
+                Sport Management
+              </strong>
+
+              <span>
+                System
               </span>
-
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Nhập số điện thoại"
-                value={phone}
-                onChange={(e) =>
-                  setPhone(e.target.value)
-                }
-              />
 
             </div>
 
           </div>
 
-          {/* Mật khẩu */}
 
-          <div className="mb-3">
+          {/* ==================================================
+              HEADER
+          ================================================== */}
 
-            <label className="form-label">
-              Mật khẩu
-            </label>
+          <div className="login-header">
 
-            <div className="input-group">
+            <span className="welcome-text">
+              CHÀO MỪNG TRỞ LẠI
+            </span>
 
-              <span className="input-group-text">
+            <h2>
+              Đăng nhập
+            </h2>
 
-                <i className="bi bi-lock-fill"></i>
+            <p>
+              Đăng nhập để tiếp tục
+              sử dụng hệ thống.
+            </p>
 
+          </div>
+
+
+          {/* ==================================================
+              ERROR
+          ================================================== */}
+
+          {error && (
+            <div className="login-message error-message">
+
+              <i className="bi bi-exclamation-circle-fill"></i>
+
+              <span>
+                {error}
               </span>
 
-              <input
-                type={
-                  showPassword
-                    ? "text"
-                    : "password"
-                }
-                className="form-control"
-                placeholder="Nhập mật khẩu"
-                value={password}
-                onChange={(e) =>
-                  setPassword(e.target.value)
-                }
-              />
+            </div>
+          )}
 
-              <button
-                type="button"
-                className="btn btn-outline-secondary"
-                onClick={() =>
-                  setShowPassword(
-                    !showPassword
-                  )
-                }
-              >
 
-                <i
-                  className={
+          {/* ==================================================
+              SUCCESS
+          ================================================== */}
+
+          {success && (
+            <div className="login-message success-message">
+
+              <i className="bi bi-check-circle-fill"></i>
+
+              <span>
+                {success}
+              </span>
+
+            </div>
+          )}
+
+
+          {/* ==================================================
+              FORM
+          ================================================== */}
+
+          <form
+            onSubmit={handleLogin}
+            className="login-form"
+          >
+
+            {/* ==================================================
+                PHONE
+            ================================================== */}
+
+            <div className="form-field">
+
+              <label htmlFor="phone">
+                Số điện thoại
+              </label>
+
+              <div className="modern-input">
+
+                <i className="bi bi-phone"></i>
+
+                <input
+                  id="phone"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="tel"
+                  placeholder="Nhập số điện thoại"
+                  value={phone}
+                  onChange={(e) => {
+
+                    const value =
+                      e.target.value
+                        .replace(/\D/g, "")
+                        .slice(0, 10);
+
+                    setPhone(value);
+
+                    if (error) {
+                      setError("");
+                    }
+
+                  }}
+                  disabled={loading}
+                />
+
+              </div>
+
+            </div>
+
+
+            {/* ==================================================
+                PASSWORD
+            ================================================== */}
+
+            <div className="form-field">
+
+              <div className="password-label-row">
+
+                <label htmlFor="password">
+                  Mật khẩu
+                </label>
+
+                <Link
+                  to="/forgot-password"
+                  className="forgot-link"
+                >
+                  Quên mật khẩu?
+                </Link>
+
+              </div>
+
+              <div className="modern-input">
+
+                <i className="bi bi-lock"></i>
+
+                <input
+                  id="password"
+                  type={
                     showPassword
-                      ? "bi bi-eye-slash-fill"
-                      : "bi bi-eye-fill"
+                      ? "text"
+                      : "password"
                   }
-                ></i>
+                  autoComplete="current-password"
+                  placeholder="Nhập mật khẩu"
+                  value={password}
+                  onChange={(e) => {
 
-              </button>
+                    setPassword(
+                      e.target.value
+                    );
+
+                    if (error) {
+                      setError("");
+                    }
+
+                  }}
+                  disabled={loading}
+                />
+
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() =>
+                    setShowPassword(
+                      (prev) => !prev
+                    )
+                  }
+                  disabled={loading}
+                  aria-label={
+                    showPassword
+                      ? "Ẩn mật khẩu"
+                      : "Hiện mật khẩu"
+                  }
+                >
+
+                  <i
+                    className={
+                      showPassword
+                        ? "bi bi-eye-slash"
+                        : "bi bi-eye"
+                    }
+                  ></i>
+
+                </button>
+
+              </div>
 
             </div>
 
-          </div>
 
-          {/* Ghi nhớ + quên mật khẩu */}
+            {/* ==================================================
+                REMEMBER
+            ================================================== */}
 
-          <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="login-options">
 
-            <div className="form-check">
+              <label className="remember-option">
 
-              <input
-                className="form-check-input"
-                type="checkbox"
-                id="remember"
-              />
+                <input
+                  type="checkbox"
+                  id="remember"
+                />
 
-              <label
-                className="form-check-label"
-                htmlFor="remember"
-              >
-                Ghi nhớ đăng nhập
+                <span className="custom-checkbox">
+
+                  <i className="bi bi-check"></i>
+
+                </span>
+
+                <span>
+                  Ghi nhớ đăng nhập
+                </span>
+
               </label>
 
             </div>
 
-            <Link
-              to="/forgot-password"
-              className="auth-link"
+
+            {/* ==================================================
+                LOGIN BUTTON
+            ================================================== */}
+
+            <button
+              type="submit"
+              className="login-button"
+              disabled={loading}
             >
-              Quên mật khẩu?
+
+              {loading ? (
+                <>
+                  <span className="login-spinner"></span>
+
+                  <span>
+                    Đang đăng nhập...
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span>
+                    Đăng nhập
+                  </span>
+
+                  <i className="bi bi-arrow-right"></i>
+                </>
+              )}
+
+            </button>
+
+          </form>
+
+
+          {/* ==================================================
+              REGISTER
+          ================================================== */}
+
+          <div className="register-section">
+
+            <span>
+              Chưa có tài khoản?
+            </span>
+
+            <Link
+              to="/register"
+              className="register-link"
+            >
+              Đăng ký ngay
             </Link>
 
           </div>
 
-          {/* Button */}
 
-          <button
-            type="submit"
-            className="auth-btn"
-            disabled={loading}
-          >
+          {/* ==================================================
+              FOOTER
+          ================================================== */}
 
-            {loading
-              ? "Đang đăng nhập..."
-              : "Đăng nhập"}
+          <div className="login-footer">
 
-          </button>
+            <i className="bi bi-shield-check"></i>
 
-        </form>
-              
-        {/* Đăng ký */}
+            <span>
+              Hệ thống được bảo mật
+              và quản lý an toàn
+            </span>
 
-        <div className="text-center mt-4">
-
-          Chưa có tài khoản?{" "}
-
-          <Link
-            to="/register"
-            className="auth-link"
-          >
-            Đăng ký
-          </Link>
+          </div>
 
         </div>
 
-      </div>
+      </section>
 
     </div>
   );

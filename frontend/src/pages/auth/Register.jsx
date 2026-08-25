@@ -1,21 +1,32 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import {
+  Link,
+  useNavigate,
+} from "react-router-dom";
+
 import Swal from "sweetalert2";
 
+import { registerApi } from "../../api/authApi";
+
+import "../../assets/styles/auth.css";
+import "../../assets/styles/register.css";
 function Register() {
-  const navigate = useNavigate();
 
-  // =============================
-  // Form
-  // =============================
+  const navigate =
+    useNavigate();
 
-  const [form, setForm] = useState({
-    fullName: "",
-    phone: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
+  // ==========================================================
+  // FORM
+  // ==========================================================
+
+  const [form, setForm] =
+    useState({
+      fullName: "",
+      phone: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    });
 
   const [showPassword, setShowPassword] =
     useState(false);
@@ -23,306 +34,309 @@ function Register() {
   const [showConfirmPassword, setShowConfirmPassword] =
     useState(false);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
-  // =============================
-  // Handle change
-  // =============================
+  // ==========================================================
+  // HANDLE CHANGE
+  // ==========================================================
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
 
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    const {
+      name,
+      value,
+    } = e.target;
+
+    setForm(
+      (prev) => ({
+        ...prev,
+        [name]: value,
+      })
+    );
   };
 
-  // =============================
-  // Register
-  // =============================
+  // ==========================================================
+  // REGISTER
+  // ==========================================================
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
+  const handleRegister =
+    async (e) => {
 
-    // =============================
-    // Kiểm tra thông tin
-    // =============================
+      e.preventDefault();
 
-    if (
-      !form.fullName.trim() ||
-      !form.phone.trim() ||
-      !form.email.trim() ||
-      !form.password.trim() ||
-      !form.confirmPassword.trim()
-    ) {
-      Swal.fire({
-        icon: "warning",
-        title: "Thiếu thông tin",
-        text: "Vui lòng nhập đầy đủ thông tin.",
-        confirmButtonColor: "#198754",
-      });
+      const cleanFullName =
+        form.fullName.trim();
 
-      return;
-    }
+      const cleanPhone =
+        form.phone.trim();
 
-    // =============================
-    // Kiểm tra số điện thoại
-    // =============================
+      const cleanEmail =
+        form.email.trim();
 
-    if (!/^[0-9]{10}$/.test(form.phone)) {
-      Swal.fire({
-        icon: "error",
-        title: "Số điện thoại không hợp lệ",
-        text: "Số điện thoại phải gồm đúng 10 chữ số.",
-        confirmButtonColor: "#198754",
-      });
+      // ======================================================
+      // KIỂM TRA THÔNG TIN
+      // ======================================================
 
-      return;
-    }
+      if (
+        !cleanFullName ||
+        !cleanPhone ||
+        !cleanEmail ||
+        !form.password.trim() ||
+        !form.confirmPassword.trim()
+      ) {
 
-    // =============================
-    // Kiểm tra email
-    // =============================
-
-    const emailRegex =
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailRegex.test(form.email)) {
-      Swal.fire({
-        icon: "error",
-        title: "Email không hợp lệ",
-        text: "Vui lòng nhập đúng định dạng email.",
-        confirmButtonColor: "#198754",
-      });
-
-      return;
-    }
-
-    // =============================
-    // Kiểm tra mật khẩu
-    // =============================
-
-    if (form.password.length < 6) {
-      Swal.fire({
-        icon: "warning",
-        title: "Mật khẩu quá ngắn",
-        text: "Mật khẩu phải có ít nhất 6 ký tự.",
-        confirmButtonColor: "#198754",
-      });
-
-      return;
-    }
-
-    // =============================
-    // Kiểm tra xác nhận mật khẩu
-    // =============================
-
-    if (
-      form.password !==
-      form.confirmPassword
-    ) {
-      Swal.fire({
-        icon: "error",
-        title: "Mật khẩu không khớp",
-        text: "Vui lòng nhập lại mật khẩu.",
-        confirmButtonColor: "#198754",
-      });
-
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      // =============================
-      // Lấy users hiện tại
-      // =============================
-
-      const savedUsers =
-        localStorage.getItem("users");
-
-      const users = savedUsers
-        ? JSON.parse(savedUsers)
-        : [];
-
-      // =============================
-      // Kiểm tra SĐT đã tồn tại
-      // =============================
-
-      const phoneExists = users.some(
-        (user) =>
-          user.phone === form.phone.trim()
-      );
-
-      if (phoneExists) {
         Swal.fire({
           icon: "warning",
-          title: "Số điện thoại đã tồn tại",
-          text: "Số điện thoại này đã được đăng ký.",
-          confirmButtonColor: "#198754",
+          title: "Thiếu thông tin",
+          text:
+            "Vui lòng nhập đầy đủ thông tin.",
+          confirmButtonColor:
+            "#198754",
         });
 
         return;
       }
 
-      // =============================
-      // Kiểm tra email đã tồn tại
-      // =============================
+      // ======================================================
+      // KIỂM TRA SỐ ĐIỆN THOẠI
+      // ======================================================
 
-      const emailExists = users.some(
-        (user) =>
-          user.email?.toLowerCase() ===
-          form.email.trim().toLowerCase()
-      );
+      if (
+        !/^[0-9]{10}$/.test(
+          cleanPhone
+        )
+      ) {
 
-      if (emailExists) {
         Swal.fire({
-          icon: "warning",
-          title: "Email đã tồn tại",
-          text: "Email này đã được đăng ký.",
-          confirmButtonColor: "#198754",
+          icon: "error",
+          title:
+            "Số điện thoại không hợp lệ",
+          text:
+            "Số điện thoại phải gồm đúng 10 chữ số.",
+          confirmButtonColor:
+            "#198754",
         });
 
         return;
       }
 
-      // =============================
-      // Tạo user mới
-      // =============================
+      // ======================================================
+      // KIỂM TRA EMAIL
+      // ======================================================
 
-      const newUser = {
-        id: Date.now(),
+      const emailRegex =
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-        fullName:
-          form.fullName.trim(),
+      if (
+        !emailRegex.test(
+          cleanEmail
+        )
+      ) {
 
-        // Giữ thêm name để tương thích
-        // với dữ liệu cũ nếu có
-        name:
-          form.fullName.trim(),
+        Swal.fire({
+          icon: "error",
+          title:
+            "Email không hợp lệ",
+          text:
+            "Vui lòng nhập đúng định dạng email.",
+          confirmButtonColor:
+            "#198754",
+        });
 
-        phone:
-          form.phone.trim(),
+        return;
+      }
 
-        email:
-          form.email.trim(),
+      // ======================================================
+      // KIỂM TRA PASSWORD
+      // ======================================================
 
-        password:
-          form.password,
+      if (
+        form.password.length <
+        6
+      ) {
 
-        // =============================
-        // Thông tin Profile
-        // =============================
+        Swal.fire({
+          icon: "warning",
+          title:
+            "Mật khẩu quá ngắn",
+          text:
+            "Mật khẩu phải có ít nhất 6 ký tự.",
+          confirmButtonColor:
+            "#198754",
+        });
 
-        dateOfBirth: "",
+        return;
+      }
 
-        gender: "",
+      // ======================================================
+      // CONFIRM PASSWORD
+      // ======================================================
 
-        address: "",
+      if (
+        form.password !==
+        form.confirmPassword
+      ) {
 
-        // =============================
-        // Quyền
-        // =============================
+        Swal.fire({
+          icon: "error",
+          title:
+            "Mật khẩu không khớp",
+          text:
+            "Vui lòng nhập lại mật khẩu.",
+          confirmButtonColor:
+            "#198754",
+        });
 
-        role: "CUSTOMER",
-      };
+        return;
+      }
 
-      // =============================
-      // Thêm user vào users
-      // =============================
+      // ======================================================
+      // GỌI API BACKEND
+      // ======================================================
 
-      const updatedUsers = [
-        ...users,
-        newUser,
-      ];
+      try {
 
-      localStorage.setItem(
-        "users",
-        JSON.stringify(updatedUsers)
-      );
+        setLoading(true);
 
-      // =============================
-      // Log để kiểm tra
-      // =============================
+        console.log(
+          "Register.jsx - Sending:",
+          {
+            fullName:
+              cleanFullName,
 
-      console.log(
-        "Đăng ký thành công:",
-        newUser
-      );
+            phone:
+              cleanPhone,
 
-      console.log(
-        "Danh sách users:",
-        updatedUsers
-      );
+            email:
+              cleanEmail,
+          }
+        );
 
-      // =============================
-      // Thông báo
-      // =============================
+        const response =
+          await registerApi({
+            fullName:
+              cleanFullName,
 
-      await Swal.fire({
-        icon: "success",
-        title: "🎉 Đăng ký thành công!",
-        html: `
-          <p style="font-size:16px;margin-bottom:10px">
-            Tài khoản <strong>${newUser.fullName}</strong>
-            đã được tạo thành công.
-          </p>
+            phone:
+              cleanPhone,
 
-          <p style="color:#6c757d;font-size:14px">
-            Vui lòng đăng nhập để sử dụng hệ thống.
-          </p>
-        `,
-        confirmButtonText:
-          "Đăng nhập ngay",
+            email:
+              cleanEmail,
 
-        confirmButtonColor:
-          "#198754",
+            password:
+              form.password,
+          });
 
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-      });
+        console.log(
+          "Register.jsx - Backend response:",
+          response
+        );
 
-      // =============================
-      // Chuyển sang Login
-      // =============================
+        // ====================================================
+        // THÔNG BÁO THÀNH CÔNG
+        // ====================================================
 
-      navigate("/login");
+        await Swal.fire({
+          icon: "success",
+          title:
+            "🎉 Đăng ký thành công!",
 
-    } catch (error) {
-      console.error(
-        "Lỗi đăng ký:",
-        error
-      );
+          html: `
+            <p style="font-size:16px;margin-bottom:10px">
+              Tài khoản <strong>${cleanFullName}</strong>
+              đã được tạo thành công.
+            </p>
 
-      Swal.fire({
-        icon: "error",
-        title: "Đăng ký thất bại",
-        text: "Có lỗi xảy ra khi tạo tài khoản.",
-        confirmButtonColor: "#198754",
-      });
+            <p style="color:#6c757d;font-size:14px">
+              Vui lòng đăng nhập để sử dụng hệ thống.
+            </p>
+          `,
 
-    } finally {
-      setLoading(false);
-    }
-  };
+          confirmButtonText:
+            "Đăng nhập ngay",
 
-  // =============================
-  // Render
-  // =============================
+          confirmButtonColor:
+            "#198754",
+
+          allowOutsideClick:
+            false,
+
+          allowEscapeKey:
+            false,
+        });
+
+        // ====================================================
+        // ĐI LOGIN
+        // ====================================================
+
+        navigate(
+          "/login",
+          {
+            replace: true,
+          }
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Register API error:",
+          error
+        );
+
+        // ====================================================
+        // LẤY MESSAGE TỪ API
+        // ====================================================
+
+        let message =
+          "Có lỗi xảy ra khi tạo tài khoản.";
+
+        if (
+          error?.data?.message
+        ) {
+
+          message =
+            error.data.message;
+
+        } else if (
+          error?.message
+        ) {
+
+          message =
+            error.message;
+        }
+
+        Swal.fire({
+          icon: "error",
+          title:
+            "Đăng ký thất bại",
+          text:
+            message,
+          confirmButtonColor:
+            "#198754",
+        });
+
+      } finally {
+
+        setLoading(false);
+
+      }
+    };
+
+  // ==========================================================
+  // RENDER
+  // ==========================================================
 
   return (
-    <div
-      className="auth-page"
-    >
+    <div className="auth-page">
 
       <div className="auth-card">
 
         <div className="auth-body">
 
-          {/* =============================
-              Logo
-          ============================== */}
+          {/* =================================================
+              LOGO
+          ================================================= */}
 
           <div className="auth-logo">
 
@@ -338,15 +352,19 @@ function Register() {
 
           </div>
 
-          {/* =============================
-              Form
-          ============================== */}
+          {/* =================================================
+              FORM
+          ================================================= */}
 
           <form
-            onSubmit={handleRegister}
+            onSubmit={
+              handleRegister
+            }
           >
 
-            {/* Họ tên */}
+            {/* =================================================
+                HỌ TÊN
+            ================================================= */}
 
             <div className="mb-3">
 
@@ -357,7 +375,9 @@ function Register() {
               <div className="input-group">
 
                 <span className="input-group-text">
+
                   <i className="bi bi-person-fill"></i>
+
                 </span>
 
                 <input
@@ -365,15 +385,24 @@ function Register() {
                   className="form-control"
                   name="fullName"
                   placeholder="Nhập họ và tên"
-                  value={form.fullName}
-                  onChange={handleChange}
+                  value={
+                    form.fullName
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  disabled={
+                    loading
+                  }
                 />
 
               </div>
 
             </div>
 
-            {/* Số điện thoại */}
+            {/* =================================================
+                SỐ ĐIỆN THOẠI
+            ================================================= */}
 
             <div className="mb-3">
 
@@ -384,7 +413,9 @@ function Register() {
               <div className="input-group">
 
                 <span className="input-group-text">
+
                   <i className="bi bi-telephone-fill"></i>
+
                 </span>
 
                 <input
@@ -392,15 +423,24 @@ function Register() {
                   className="form-control"
                   name="phone"
                   placeholder="Nhập số điện thoại"
-                  value={form.phone}
-                  onChange={handleChange}
+                  value={
+                    form.phone
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  disabled={
+                    loading
+                  }
                 />
 
               </div>
 
             </div>
 
-            {/* Email */}
+            {/* =================================================
+                EMAIL
+            ================================================= */}
 
             <div className="mb-3">
 
@@ -411,7 +451,9 @@ function Register() {
               <div className="input-group">
 
                 <span className="input-group-text">
+
                   <i className="bi bi-envelope-fill"></i>
+
                 </span>
 
                 <input
@@ -419,15 +461,24 @@ function Register() {
                   className="form-control"
                   name="email"
                   placeholder="Nhập email"
-                  value={form.email}
-                  onChange={handleChange}
+                  value={
+                    form.email
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  disabled={
+                    loading
+                  }
                 />
 
               </div>
 
             </div>
 
-            {/* Mật khẩu */}
+            {/* =================================================
+                MẬT KHẨU
+            ================================================= */}
 
             <div className="mb-3">
 
@@ -438,7 +489,9 @@ function Register() {
               <div className="input-group">
 
                 <span className="input-group-text">
+
                   <i className="bi bi-lock-fill"></i>
+
                 </span>
 
                 <input
@@ -450,8 +503,15 @@ function Register() {
                   className="form-control"
                   name="password"
                   placeholder="Nhập mật khẩu"
-                  value={form.password}
-                  onChange={handleChange}
+                  value={
+                    form.password
+                  }
+                  onChange={
+                    handleChange
+                  }
+                  disabled={
+                    loading
+                  }
                 />
 
                 <button
@@ -459,8 +519,12 @@ function Register() {
                   className="btn btn-outline-secondary"
                   onClick={() =>
                     setShowPassword(
-                      !showPassword
+                      (prev) =>
+                        !prev
                     )
+                  }
+                  disabled={
+                    loading
                   }
                 >
 
@@ -478,7 +542,9 @@ function Register() {
 
             </div>
 
-            {/* Xác nhận mật khẩu */}
+            {/* =================================================
+                XÁC NHẬN MẬT KHẨU
+            ================================================= */}
 
             <div className="mb-4">
 
@@ -489,7 +555,9 @@ function Register() {
               <div className="input-group">
 
                 <span className="input-group-text">
+
                   <i className="bi bi-shield-lock-fill"></i>
+
                 </span>
 
                 <input
@@ -507,6 +575,9 @@ function Register() {
                   onChange={
                     handleChange
                   }
+                  disabled={
+                    loading
+                  }
                 />
 
                 <button
@@ -514,8 +585,12 @@ function Register() {
                   className="btn btn-outline-secondary"
                   onClick={() =>
                     setShowConfirmPassword(
-                      !showConfirmPassword
+                      (prev) =>
+                        !prev
                     )
+                  }
+                  disabled={
+                    loading
                   }
                 >
 
@@ -533,19 +608,24 @@ function Register() {
 
             </div>
 
-            {/* Button */}
+            {/* =================================================
+                BUTTON
+            ================================================= */}
 
             <button
               type="submit"
               className="auth-btn"
-              disabled={loading}
+              disabled={
+                loading
+              }
             >
 
               {loading ? (
                 <>
                   <span
                     className="spinner-border spinner-border-sm me-2"
-                  ></span>
+                    role="status"
+                  />
 
                   Đang đăng ký...
                 </>
@@ -563,9 +643,9 @@ function Register() {
 
           <hr className="my-4" />
 
-          {/* =============================
-              Login
-          ============================== */}
+          {/* =================================================
+              LOGIN
+          ================================================= */}
 
           <div className="text-center">
 

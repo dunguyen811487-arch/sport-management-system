@@ -1,5 +1,12 @@
-import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import {
+    useEffect,
+    useState,
+} from "react";
+
+import {
+    useLocation,
+    useNavigate,
+} from "react-router-dom";
 
 import useAuth from "../../hooks/useAuth";
 import formatCurrency from "../../utils/formatCurrency";
@@ -8,480 +15,679 @@ import PaymentModal from "../../components/customer/PaymentModal";
 
 import "../../assets/styles/booking-confirm.css";
 
+
 function BookingConfirm() {
 
-  const navigate = useNavigate();
+    const navigate = useNavigate();
 
-  const { state } = useLocation();
+    const { state } = useLocation();
 
-  const { user } = useAuth();
+    const { user } = useAuth();
 
-  if (!state) {
 
-    navigate("/fields");
+    // ==========================================================
+    // STATE
+    // ==========================================================
 
-    return null;
+    const [note, setNote] =
+        useState("");
 
-  }
+    const [showPayment, setShowPayment] =
+        useState(false);
 
-  const {
 
-    field,
+    // ==========================================================
+    // REDIRECT NẾU KHÔNG CÓ STATE
+    // ==========================================================
 
-    bookingDate,
+    useEffect(() => {
 
-    selectedSlots,
+        if (!state) {
 
-    totalHours,
+            navigate(
+                "/fields",
+                {
+                    replace: true,
+                }
+            );
 
-    totalPrice,
+        }
 
-  } = state;
+    }, [
+        state,
+        navigate,
+    ]);
 
-  const [note, setNote] = useState("");
 
-  const [showPayment, setShowPayment] = useState(false);
+    // ==========================================================
+    // KHÔNG CÓ STATE
+    // ==========================================================
 
-  // =============================
-  // Hiển thị khung giờ
-  // =============================
-
-  const bookingTime = () => {
-
-    if (selectedSlots.length === 0) {
-
-      return "Chưa chọn";
-
+    if (!state) {
+        return null;
     }
 
-    const sorted = [...selectedSlots].sort();
 
-    const first = sorted[0];
+    // ==========================================================
+    // LẤY DỮ LIỆU
+    // ==========================================================
 
-    const lastHour =
-      parseInt(sorted[sorted.length - 1].split(":")[0]) + 1;
+    const {
+        field,
+        bookingDate,
+        selectedSlots,
+        totalHours,
+        totalPrice,
+    } = state;
 
-    const last = `${lastHour.toString().padStart(2, "0")}:00`;
 
-    return `${first} - ${last}`;
+    // ==========================================================
+    // KIỂM TRA DỮ LIỆU
+    // ==========================================================
 
-  };
+    if (
+        !field ||
+        !bookingDate ||
+        !Array.isArray(selectedSlots)
+    ) {
 
-  return (
+        return (
+            <div className="container py-5">
 
-    <div className="container py-4">
+                <div className="alert alert-danger">
 
-      <h2 className="fw-bold text-success mb-4">
+                    Không tìm thấy đầy đủ thông tin
+                    đặt sân.
 
-        Xác nhận đặt sân
+                </div>
 
-      </h2>
-            {/* ================= Thông tin sân ================= */}
+                <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() =>
+                        navigate(
+                            "/fields",
+                            {
+                                replace: true,
+                            }
+                        )
+                    }
+                >
+                    Quay lại danh sách sân
+                </button>
 
-      <div className="card shadow-sm border-0 mb-4">
+            </div>
+        );
+    }
 
-        <div className="card-body">
 
-          <div className="row">
+    // ==========================================================
+    // HIỂN THỊ KHUNG GIỜ
+    // ==========================================================
 
-            <div className="col-md-4">
+    const bookingTime = () => {
 
-              <img
-                src={field.image}
-                alt={field.fieldName}
-                className="confirm-image"
-              />
+        if (
+            selectedSlots.length === 0
+        ) {
+            return "Chưa chọn";
+        }
+
+
+        const sorted = [
+            ...selectedSlots,
+        ].sort();
+
+
+        const first =
+            sorted[0];
+
+
+        const lastHour =
+            parseInt(
+                sorted[
+                    sorted.length - 1
+                ].split(":")[0],
+                10
+            ) + 1;
+
+
+        const last =
+            `${String(lastHour).padStart(
+                2,
+                "0"
+            )}:00`;
+
+
+        return `${first} - ${last}`;
+    };
+
+
+    // ==========================================================
+    // MỞ PAYMENT MODAL
+    // ==========================================================
+
+    const openPayment = () => {
+
+        if (!user) {
+
+            alert(
+                "Phiên đăng nhập đã hết. Vui lòng đăng nhập lại."
+            );
+
+            navigate(
+                "/login",
+                {
+                    replace: true,
+                }
+            );
+
+            return;
+        }
+
+
+        if (
+            selectedSlots.length === 0
+        ) {
+
+            alert(
+                "Vui lòng chọn ít nhất 1 khung giờ."
+            );
+
+            return;
+        }
+
+
+        setShowPayment(true);
+    };
+
+
+    // ==========================================================
+    // RENDER
+    // ==========================================================
+
+    return (
+
+        <div className="container py-4">
+
+            {/* ==================================================
+                HEADER
+            ================================================== */}
+
+            <h2 className="fw-bold text-success mb-4">
+                Xác nhận đặt sân
+            </h2>
+
+
+            {/* ==================================================
+                THÔNG TIN SÂN
+            ================================================== */}
+
+            <div className="card shadow-sm border-0 mb-4">
+
+                <div className="card-body">
+
+                    <div className="row">
+
+                        <div className="col-md-4">
+
+                            {field.image ? (
+
+                                <img
+                                    src={field.image}
+                                    alt={
+                                        field.fieldName ||
+                                        "Sân thể thao"
+                                    }
+                                    className="confirm-image"
+                                />
+
+                            ) : (
+
+                                <div
+                                    className="confirm-image bg-light d-flex align-items-center justify-content-center"
+                                >
+
+                                    <i
+                                        className="bi bi-image text-muted"
+                                        style={{
+                                            fontSize:
+                                                "50px",
+                                        }}
+                                    ></i>
+
+                                </div>
+
+                            )}
+
+                        </div>
+
+
+                        <div className="col-md-8">
+
+                            <h3 className="fw-bold">
+
+                                {
+                                    field.fieldName ||
+                                    "Sân thể thao"
+                                }
+
+                            </h3>
+
+
+                            <span className="badge bg-success mb-3">
+
+                                {
+                                    field.fieldType?.name ||
+                                    field.fieldType ||
+                                    "Sân thể thao"
+                                }
+
+                            </span>
+
+
+                            <p>
+
+                                <i className="bi bi-grid-fill me-2"></i>
+
+                                {
+                                    field.subType ||
+                                    "-"
+                                }
+
+                            </p>
+
+
+                            <p>
+
+                                <i className="bi bi-geo-alt-fill me-2"></i>
+
+                                {
+                                    field.location ||
+                                    "-"
+                                }
+
+                            </p>
+
+
+                            <h3 className="text-success fw-bold">
+
+                                {
+                                    formatCurrency(
+                                        field.pricePerHour ||
+                                        0
+                                    )
+                                }
+
+                                <small className="text-muted">
+                                    / giờ
+                                </small>
+
+                            </h3>
+
+                        </div>
+
+                    </div>
+
+                </div>
 
             </div>
 
-            <div className="col-md-8">
 
-              <h3 className="fw-bold">
+            {/* ==================================================
+                THÔNG TIN LỊCH ĐẶT
+            ================================================== */}
 
-                {field.fieldName}
+            <div className="card shadow-sm border-0 mb-4">
 
-              </h3>
+                <div className="card-body">
 
-              <span className="badge bg-success mb-3">
+                    <h4 className="fw-bold mb-3">
+                        📅 Thông tin lịch đặt
+                    </h4>
 
-                {field.fieldType}
 
-              </span>
+                    <table className="table align-middle">
 
-              <p>
+                        <tbody>
 
-                <i className="bi bi-grid-fill me-2"></i>
+                            <tr>
 
-                {field.subType}
+                                <th width="180">
+                                    Ngày đặt
+                                </th>
 
-              </p>
+                                <td>
+                                    {bookingDate}
+                                </td>
 
-              <p>
+                            </tr>
 
-                <i className="bi bi-geo-alt-fill me-2"></i>
 
-                {field.location}
+                            <tr>
 
-              </p>
+                                <th>
+                                    Khung giờ
+                                </th>
 
-              <h3 className="text-success fw-bold">
+                                <td>
+                                    {bookingTime()}
+                                </td>
 
-                {formatCurrency(field.pricePerHour)}
+                            </tr>
 
-                <small className="text-muted">
 
-                  / giờ
+                            <tr>
 
-                </small>
+                                <th>
+                                    Số giờ
+                                </th>
 
-              </h3>
+                                <td>
+                                    {totalHours} giờ
+                                </td>
+
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
 
             </div>
 
-          </div>
 
-        </div>
+            {/* ==================================================
+                NGƯỜI ĐẶT
+            ================================================== */}
 
-      </div>
+            <div className="card shadow-sm border-0 mb-4">
 
-      {/* ================= Thông tin lịch ================= */}
+                <div className="card-body">
 
-      <div className="card shadow-sm border-0 mb-4">
+                    <h4 className="fw-bold mb-3">
+                        👤 Người đặt
+                    </h4>
 
-        <div className="card-body">
 
-          <h4 className="fw-bold mb-3">
+                    <table className="table align-middle">
 
-            📅 Thông tin lịch đặt
+                        <tbody>
 
-          </h4>
+                            <tr>
 
-          <table className="table align-middle">
+                                <th width="180">
+                                    Họ và tên
+                                </th>
 
-            <tbody>
+                                <td>
 
-              <tr>
+                                    {
+                                        user?.fullName ||
+                                        user?.name ||
+                                        "-"
+                                    }
 
-                <th width="180">
+                                </td>
 
-                  Ngày đặt
+                            </tr>
 
-                </th>
 
-                <td>
+                            <tr>
 
-                  {bookingDate}
+                                <th>
+                                    Số điện thoại
+                                </th>
 
-                </td>
+                                <td>
 
-              </tr>
+                                    {
+                                        user?.phone ||
+                                        "-"
+                                    }
 
-              <tr>
+                                </td>
 
-                <th>
+                            </tr>
 
-                  Khung giờ
 
-                </th>
+                            <tr>
 
-                <td>
+                                <th>
+                                    Email
+                                </th>
 
-                  {bookingTime()}
+                                <td>
 
-                </td>
+                                    {
+                                        user?.email ||
+                                        "-"
+                                    }
 
-              </tr>
+                                </td>
 
-              <tr>
+                            </tr>
 
-                <th>
+                        </tbody>
 
-                  Số giờ
+                    </table>
 
-                </th>
-
-                <td>
-
-                  {totalHours} giờ
-
-                </td>
-
-              </tr>
-
-            </tbody>
-
-          </table>
-
-        </div>
-
-      </div>
-
-      {/* ================= Người đặt ================= */}
-
-      <div className="card shadow-sm border-0 mb-4">
-
-        <div className="card-body">
-
-          <h4 className="fw-bold mb-3">
-
-            👤 Người đặt
-
-          </h4>
-
-          <table className="table align-middle">
-
-            <tbody>
-
-              <tr>
-
-                <th width="180">
-
-                  Họ và tên
-
-                </th>
-
-                <td>
-
-                  {user?.fullName}
-
-                </td>
-
-              </tr>
-
-              <tr>
-
-                <th>
-
-                  Số điện thoại
-
-                </th>
-
-                <td>
-
-                  {user?.phone}
-
-                </td>
-
-              </tr>
-
-              <tr>
-
-                <th>
-
-                  Email
-
-                </th>
-
-                <td>
-
-                  {user?.email}
-
-                </td>
-
-              </tr>
-
-            </tbody>
-
-          </table>
-
-        </div>
-
-      </div>
-
-      {/* ================= Ghi chú ================= */}
-
-      <div className="card shadow-sm border-0 mb-4">
-
-        <div className="card-body">
-
-          <h4 className="fw-bold mb-3">
-
-            📝 Ghi chú
-
-          </h4>
-
-          <textarea
-
-            rows="4"
-
-            className="form-control"
-
-            placeholder="Nhập ghi chú (nếu có)..."
-
-            value={note}
-
-            onChange={(e) =>
-              setNote(e.target.value)
-            }
-
-          />
-
-        </div>
-
-      </div>
-            {/* ================= Tổng thanh toán ================= */}
-
-      <div className="card shadow-sm border-0 mb-4">
-
-        <div className="card-body">
-
-          <h4 className="fw-bold mb-4">
-
-            💰 Tổng thanh toán
-
-          </h4>
-
-          <div className="row">
-
-            <div className="col-md-8">
-
-              <table className="table">
-
-                <tbody>
-
-                  <tr>
-
-                    <th width="220">
-
-                      Đơn giá
-
-                    </th>
-
-                    <td>
-
-                      {formatCurrency(field.pricePerHour)}
-
-                    </td>
-
-                  </tr>
-
-                  <tr>
-
-                    <th>
-
-                      Số giờ thuê
-
-                    </th>
-
-                    <td>
-
-                      {totalHours} giờ
-
-                    </td>
-
-                  </tr>
-
-                  <tr>
-
-                    <th>
-
-                      Khung giờ
-
-                    </th>
-
-                    <td>
-
-                      {bookingTime()}
-
-                    </td>
-
-                  </tr>
-
-                </tbody>
-
-              </table>
+                </div>
 
             </div>
 
-            <div className="col-md-4">
 
-              <div className="payment-summary">
+            {/* ==================================================
+                GHI CHÚ
+            ================================================== */}
 
-                <small className="text-muted">
+            <div className="card shadow-sm border-0 mb-4">
 
-                  Thành tiền
+                <div className="card-body">
 
-                </small>
+                    <h4 className="fw-bold mb-3">
+                        📝 Ghi chú
+                    </h4>
 
-                <h2 className="text-success fw-bold mt-2">
 
-                  {formatCurrency(totalPrice)}
+                    <textarea
+                        rows="4"
+                        className="form-control"
+                        placeholder="Nhập ghi chú (nếu có)..."
+                        value={note}
+                        onChange={(e) =>
+                            setNote(
+                                e.target.value
+                            )
+                        }
+                    />
 
-                </h2>
-
-                <span className="badge bg-warning text-dark mt-2">
-
-                  Chưa thanh toán
-
-                </span>
-
-              </div>
+                </div>
 
             </div>
 
-          </div>
+
+            {/* ==================================================
+                TỔNG THANH TOÁN
+            ================================================== */}
+
+            <div className="card shadow-sm border-0 mb-4">
+
+                <div className="card-body">
+
+                    <h4 className="fw-bold mb-4">
+                        💰 Tổng thanh toán
+                    </h4>
+
+
+                    <div className="row">
+
+                        <div className="col-md-8">
+
+                            <table className="table">
+
+                                <tbody>
+
+                                    <tr>
+
+                                        <th width="220">
+                                            Đơn giá
+                                        </th>
+
+                                        <td>
+
+                                            {
+                                                formatCurrency(
+                                                    field.pricePerHour ||
+                                                    0
+                                                )
+                                            }
+
+                                        </td>
+
+                                    </tr>
+
+
+                                    <tr>
+
+                                        <th>
+                                            Số giờ thuê
+                                        </th>
+
+                                        <td>
+                                            {totalHours} giờ
+                                        </td>
+
+                                    </tr>
+
+
+                                    <tr>
+
+                                        <th>
+                                            Khung giờ
+                                        </th>
+
+                                        <td>
+                                            {bookingTime()}
+                                        </td>
+
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+
+                        <div className="col-md-4">
+
+                            <div className="payment-summary">
+
+                                <small className="text-muted">
+                                    Thành tiền
+                                </small>
+
+
+                                <h2 className="text-success fw-bold mt-2">
+
+                                    {
+                                        formatCurrency(
+                                            totalPrice ||
+                                            0
+                                        )
+                                    }
+
+                                </h2>
+
+
+                                <span className="badge bg-warning text-dark mt-2">
+                                    Chưa thanh toán
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {/* ==================================================
+                BUTTON
+            ================================================== */}
+
+            <div className="d-flex justify-content-between align-items-center">
+
+                <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-lg"
+                    onClick={() =>
+                        navigate(-1)
+                    }
+                >
+
+                    <i className="bi bi-arrow-left me-2"></i>
+
+                    Quay lại
+
+                </button>
+
+
+                <button
+                    type="button"
+                    className="btn btn-success btn-lg"
+                    onClick={openPayment}
+                >
+
+                    <i className="bi bi-credit-card me-2"></i>
+
+                    Thanh toán
+
+                </button>
+
+            </div>
+
+
+            {/* ==================================================
+                PAYMENT MODAL
+            ================================================== */}
+
+            <PaymentModal
+                show={
+                    showPayment
+                }
+
+                onClose={() =>
+                    setShowPayment(
+                        false
+                    )
+                }
+
+                booking={{
+
+                    field,
+
+                    bookingDate,
+
+                    selectedSlots,
+
+                    totalHours,
+
+                    totalPrice,
+
+                    note,
+
+                }}
+            />
 
         </div>
-
-      </div>
-
-      {/* ================= Button ================= */}
-
-      <div className="d-flex justify-content-between align-items-center">
-
-        <button
-          className="btn btn-outline-secondary btn-lg"
-          onClick={() => navigate(-1)}
-        >
-
-          <i className="bi bi-arrow-left me-2"></i>
-
-          Quay lại
-
-        </button>
-
-        <button
-          className="btn btn-success btn-lg"
-          onClick={() => setShowPayment(true)}
-        >
-
-          <i className="bi bi-credit-card me-2"></i>
-
-          Thanh toán
-
-        </button>
-
-      </div>
-
-      {/* ================= Modal ================= */}
-
-      <PaymentModal
-
-        show={showPayment}
-
-        onClose={() => setShowPayment(false)}
-
-        booking={{
-
-          field,
-
-          bookingDate,
-
-          selectedSlots,
-
-          totalHours,
-
-          totalPrice,
-
-          note,
-
-        }}
-
-      />
-          </div>
-
-  );
-
+    );
 }
+
 
 export default BookingConfirm;

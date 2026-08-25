@@ -1,289 +1,412 @@
 import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
+    createContext,
+    useContext,
+    useEffect,
+    useState,
 } from "react";
 
-import authService from "../services/authService";
+import {
+    loginApi,
+    getProfileApi,
+} from "../api/authApi";
 
-const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {
-  // =============================
-  // STATE
-  // =============================
+// ==========================================================
+// CONTEXT
+// ==========================================================
 
-  const [user, setUser] = useState(null);
+export const AuthContext =
+    createContext(null);
 
-  const [token, setToken] = useState(null);
 
-  const [loading, setLoading] = useState(true);
+// ==========================================================
+// GET STORED USER
+// Chỉ nhận User thật, không nhận JWT payload
+// ==========================================================
 
-  const [isAuthenticated, setIsAuthenticated] =
-    useState(false);
+const getStoredUser = () => {
 
-  // =============================
-  // KIỂM TRA ĐĂNG NHẬP
-  // =============================
-
-  useEffect(() => {
-    checkLogin();
-  }, []);
-
-  const checkLogin = () => {
     try {
-      const savedToken =
-        localStorage.getItem("token");
 
-      const savedUser =
-        localStorage.getItem("user");
+        const storedUser =
+            localStorage.getItem("user");
 
-      if (savedToken && savedUser) {
+        if (!storedUser) {
+            return null;
+        }
+
         const parsedUser =
-          JSON.parse(savedUser);
+            JSON.parse(storedUser);
 
-        setToken(savedToken);
-        setUser(parsedUser);
-        setIsAuthenticated(true);
-      } else {
-        setToken(null);
+        // JWT payload thường chỉ có:
+        // id, role, iat, exp
+        //
+        // User thật phải có fullName/name
+
+        if (
+            !parsedUser ||
+            (
+                !parsedUser.fullName &&
+                !parsedUser.name
+            )
+        ) {
+            return null;
+        }
+
+        return parsedUser;
+
+    } catch (error) {
+
+        console.error(
+            "Không đọc được user từ localStorage:",
+            error
+        );
+
+        localStorage.removeItem(
+            "user"
+        );
+
+        return null;
+    }
+};
+
+
+// ==========================================================
+// PROVIDER
+// ==========================================================
+
+export function AuthProvider({
+    children,
+}) {
+
+    // Khôi phục User thật ngay khi app mở
+    const [user, setUser] =
+        useState(
+            getStoredUser()
+        );
+
+    const [loading, setLoading] =
+        useState(true);
+
+
+    // ======================================================
+    // RESTORE SESSION
+    // ======================================================
+
+    const restoreSession = async () => {
+
+        const token =
+            localStorage.getItem("token");
+
+
+        // Không có token
+        if (!token) {
+
+            setUser(null);
+
+            setLoading(false);
+
+            return;
+        }
+
+
+        // Có token
+        try {
+
+            const response =
+                await getProfileApi();
+
+            const currentUser =
+                response?.user;
+
+
+            // Backend phải trả User thật
+            if (!currentUser) {
+
+                throw new Error(
+                    "API profile không trả về user"
+                );
+            }
+
+
+            // ----------------------------------------------
+            // USER THẬT TỪ MONGODB
+            // ----------------------------------------------
+
+            setUser(
+                currentUser
+            );
+
+
+            // ----------------------------------------------
+            // LƯU USER THẬT
+            // ----------------------------------------------
+
+            localStorage.setItem(
+                "user",
+                JSON.stringify(
+                    currentUser
+                )
+            );
+
+        } catch (error) {
+
+            console.error(
+                "Restore session error:",
+                error
+            );
+
+
+            // Chỉ xóa session khi backend
+            // thực sự trả 401
+            if (
+                error?.status === 401
+            ) {
+
+                localStorage.removeItem(
+                    "token"
+                );
+
+                localStorage.removeItem(
+                    "user"
+                );
+
+                setUser(null);
+            }
+
+        } finally {
+
+            setLoading(false);
+        }
+    };
+
+
+    // ======================================================
+    // RESTORE KHI APP KHỞI ĐỘNG
+    // ======================================================
+
+    useEffect(() => {
+
+        restoreSession();
+
+    }, []);
+
+
+    // ======================================================
+    // LOGIN
+    // ======================================================
+
+    const loginWithApi = async (
+        phone,
+        password
+    ) => {
+
+        try {
+
+            const response =
+                await loginApi({
+                    phone,
+                    password,
+                });
+
+
+            if (!response) {
+
+                return {
+                    success: false,
+                    message:
+                        "Backend không trả về dữ liệu đăng nhập",
+                };
+            }
+
+
+            if (!response.token) {
+
+                return {
+                    success: false,
+                    message:
+                        response.message ||
+                        "Backend không trả về JWT token",
+                };
+            }
+
+
+            if (!response.user) {
+
+                return {
+                    success: false,
+                    message:
+                        "Backend không trả về thông tin người dùng",
+                };
+            }
+
+
+            // ----------------------------------------------
+            // TOKEN
+            // ----------------------------------------------
+
+            localStorage.setItem(
+                "token",
+                response.token
+            );
+
+
+            // ----------------------------------------------
+            // USER THẬT
+            // ----------------------------------------------
+
+            localStorage.setItem(
+                "user",
+                JSON.stringify(
+                    response.user
+                )
+            );
+
+
+            // ----------------------------------------------
+            // STATE
+            // ----------------------------------------------
+
+            setUser(
+                response.user
+            );
+
+
+            return {
+                success: true,
+
+                token:
+                    response.token,
+
+                user:
+                    response.user,
+
+                message:
+                    response.message ||
+                    "Đăng nhập thành công",
+            };
+
+        } catch (error) {
+
+            console.error(
+                "loginWithApi error:",
+                error
+            );
+
+            return {
+                success: false,
+
+                message:
+                    error?.data?.message ||
+                    error?.message ||
+                    "Đăng nhập thất bại",
+            };
+        }
+    };
+
+
+    // ======================================================
+    // LOGOUT
+    // ======================================================
+
+    const logout = () => {
+
+        localStorage.removeItem(
+            "token"
+        );
+
+        localStorage.removeItem(
+            "user"
+        );
+
         setUser(null);
-        setIsAuthenticated(false);
-      }
-    } catch (error) {
-      console.error(
-        "Lỗi kiểm tra đăng nhập:",
-        error
-      );
+    };
 
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
 
-      setToken(null);
-      setUser(null);
-      setIsAuthenticated(false);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // ======================================================
+    // UPDATE USER
+    // ======================================================
 
-  // =============================
-  // ĐĂNG NHẬP
-  // =============================
-  // Login.jsx hiện tại gọi:
-  //
-  // login(user, token)
-  //
-  // nên Context phải nhận đúng 2 tham số này.
-  // =============================
-
-  const login = async (userData, tokenData) => {
-    try {
-      const normalizedUser = {
-        id: userData.id,
-
-        fullName:
-          userData.fullName ||
-          userData.name ||
-          "",
-
-        name:
-          userData.name ||
-          userData.fullName ||
-          "",
-
-        phone:
-          userData.phone || "",
-
-        email:
-          userData.email || "",
-
-        dateOfBirth:
-          userData.dateOfBirth || "",
-
-        gender:
-          userData.gender || "",
-
-        address:
-          userData.address || "",
-
-        role:
-        userData.role
-          ? userData.role.toLowerCase()
-          : "customer",
-      };
-
-      const finalToken =
-        tokenData || "fake-token";
-
-      // =============================
-      // LƯU LOCAL STORAGE
-      // =============================
-
-      localStorage.setItem(
-        "token",
-        finalToken
-      );
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify(normalizedUser)
-      );
-
-      // =============================
-      // CẬP NHẬT CONTEXT
-      // =============================
-
-      setToken(finalToken);
-
-      setUser(normalizedUser);
-
-      setIsAuthenticated(true);
-
-      console.log(
-        "AuthContext - Login:",
-        normalizedUser
-      );
-
-      return true;
-    } catch (error) {
-      console.error(
-        "Lỗi login:",
-        error
-      );
-
-      return false;
-    }
-  };
-
-  // =============================
-  // ĐĂNG KÝ
-  // =============================
-
-  const register = async (data) => {
-    try {
-      /*
-       * SAU NÀY KHI CÓ BACKEND:
-       *
-       * await authService.register(data);
-       *
-       * Hiện tại Register.jsx đang tự lưu
-       * user vào localStorage nên Context
-       * chưa cần gọi API.
-       */
-
-      console.log(
-        "AuthContext - Register:",
-        data
-      );
-
-      return true;
-    } catch (error) {
-      console.error(
-        "Lỗi đăng ký:",
-        error
-      );
-
-      return false;
-    }
-  };
-
-  // =============================
-  // ĐĂNG XUẤT
-  // =============================
-
-  const logout = () => {
-    /*
-     * SAU NÀY:
-     *
-     * authService.logout();
-     */
-
-    localStorage.removeItem("token");
-
-    localStorage.removeItem("user");
-
-    setToken(null);
-
-    setUser(null);
-
-    setIsAuthenticated(false);
-  };
-
-  // =============================
-  // CẬP NHẬT USER
-  // =============================
-
-  const updateUser = (newUser) => {
-    try {
-      const updatedUser = {
-        ...user,
-        ...newUser,
-      };
-
-      // Cập nhật Context
-      setUser(updatedUser);
-
-      // Cập nhật localStorage
-      localStorage.setItem(
-        "user",
-        JSON.stringify(updatedUser)
-      );
-
-      console.log(
-        "AuthContext - User updated:",
+    const updateUser = (
         updatedUser
-      );
+    ) => {
 
-      return true;
-    } catch (error) {
-      console.error(
-        "Lỗi cập nhật user:",
-        error
-      );
+        setUser(
+            updatedUser
+        );
 
-      return false;
-    }
-  };
+        localStorage.setItem(
+            "user",
+            JSON.stringify(
+                updatedUser
+            )
+        );
+    };
 
-  // =============================
-  // CONTEXT VALUE
-  // =============================
 
-  const value = {
-    user,
+    // ======================================================
+    // AUTH STATUS
+    // ======================================================
 
-    token,
+    const isAuthenticated =
+        !!user &&
+        !!localStorage.getItem(
+            "token"
+        );
 
-    loading,
 
-    isAuthenticated,
+    // ======================================================
+    // VALUE
+    // ======================================================
 
-    login,
+    const value = {
 
-    register,
+        user,
 
-    logout,
+        loading,
 
-    updateUser,
-  };
+        isAuthenticated,
 
-  // =============================
-  // PROVIDER
-  // =============================
+        loginWithApi,
 
-  return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
-    </AuthContext.Provider>
-  );
+        logout,
+
+        updateUser,
+
+        restoreSession,
+    };
+
+
+    return (
+        <AuthContext.Provider
+            value={value}
+        >
+            {children}
+        </AuthContext.Provider>
+    );
 }
 
-// =============================
-// useAuth
-// =============================
+
+// ==========================================================
+// HOOK
+// ==========================================================
 
 export function useAuth() {
-  return useContext(AuthContext);
+
+    const context =
+        useContext(
+            AuthContext
+        );
+
+    if (!context) {
+
+        throw new Error(
+            "useAuth phải được sử dụng bên trong AuthProvider"
+        );
+    }
+
+    return context;
 }
+
+
+export default AuthContext;

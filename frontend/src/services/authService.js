@@ -1,35 +1,66 @@
-// src/services/authService.js
-
 import API from "../config/api";
 
-const authService = {
+// ==========================================================
+// LOGIN
+// ==========================================================
 
-  // Đăng nhập
-  login(data) {
-    return API.post("/auth/login", data);
-  },
+export const login = async (
+  phone,
+  password
+) => {
 
-  // Đăng ký
-  register(data) {
-    return API.post("/auth/register", data);
-  },
+  const response =
+    await API.post(
+      "/auth/login",
+      {
+        phone,
+        password,
+      }
+    );
 
-  // Lấy thông tin người dùng
-  getProfile() {
-    return API.get("/users/profile");
-  },
-
-  // Đổi mật khẩu
-  changePassword(data) {
-    return API.put("/users/change-password", data);
-  },
-
-  // Đăng xuất
-  logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-  },
-
+  return response.data;
 };
 
-export default authService;
+// ==========================================================
+// REGISTER
+// ==========================================================
+
+export const register = async (
+  data
+) => {
+
+  const response =
+    await API.post(
+      "/auth/register",
+      {
+        fullName:
+          data.fullName,
+
+        phone:
+          data.phone,
+
+        email:
+          data.email,
+
+        password:
+          data.password,
+      }
+    );
+
+  return response.data;
+};
+
+// ==========================================================
+// PROFILE
+// ==========================================================
+
+export const getProfile =
+  async () => {
+
+    const response =
+      await API.get(
+        "/auth/profile"
+      );
+
+    return response.data;
+  };

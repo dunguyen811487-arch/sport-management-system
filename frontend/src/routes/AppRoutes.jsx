@@ -1,83 +1,126 @@
-import { Routes, Route } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 
-import MainLayout from "../layouts/MainLayout";
-import StaffLayout from "../layouts/StaffLayout";
-import AdminLayout from "../layouts/AdminLayout";
+// =============================
+// AUTH
+// =============================
 
-import ProtectedRoute from "../components/ProtectedRoute";
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
 
-// ================= Auth =================
+// Nếu chưa có ForgotPassword thì KHÔNG import
+// import ForgotPassword from "./pages/auth/ForgotPassword";
 
-import Login from "../pages/auth/Login";
-import Register from "../pages/auth/Register";
+// =============================
+// PROTECTED ROUTE
+// =============================
 
-// ================= Customer =================
+import ProtectedRoute from "./components/ProtectedRoute";
 
-import Home from "../pages/customer/Home";
-import FieldList from "../pages/customer/FieldList";
-import FieldDetail from "../pages/customer/FieldDetail";
+// =============================
+// CUSTOMER
+// =============================
 
-import Booking from "../pages/customer/BookingSchedule";
-import BookingConfirm from "../pages/customer/BookingConfirm";
-import BookingSuccess from "../pages/customer/BookingSuccess";
-import BookingHistory from "../pages/customer/BookingHistory";
-import BookingDetail from "../pages/customer/BookingDetail";
+import Home from "./pages/customer/Home";
 
-import Payment from "../pages/customer/Payment";
-import Profile from "../pages/customer/Profile";
+// =============================
+// ADMIN
+// =============================
 
-// ================= Staff =================
+// File của bạn tên Dashboard.jsx
+import Dashboard from "./pages/admin/Dashboard";
 
-import Dashboard from "../pages/staff/Dashboard";
-import FieldManagement from "../pages/staff/FieldManagement";
-import BookingManagement from "../pages/staff/BookingManagement";
-import PaymentManagement from "../pages/staff/PaymentManagement";
-import Statistics from "../pages/staff/Statistics";
+// =============================
+// 403
+// =============================
 
-// ================= Admin =================
+function Forbidden() {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        padding: "40px",
+      }}
+    >
+      <div>
+        <h1 style={{ fontSize: "80px" }}>403</h1>
 
-import AdminDashboard from "../pages/admin/Dashboard";
-import UserManagement from "../pages/admin/UserManagement";
-import FieldTypeManagement from "../pages/admin/FieldTypeManagement";
-import Report from "../pages/admin/Report";
+        <h2>Không có quyền truy cập</h2>
 
-// ================= Common =================
+        <p>
+          Bạn không có quyền truy cập trang này.
+        </p>
 
-import Forbidden from "../pages/Forbidden";
-import NotFound from "../pages/NotFound";
+        <button
+          onClick={() => {
+            window.history.back();
+          }}
+          style={{
+            padding: "8px 18px",
+            cursor: "pointer",
+          }}
+        >
+          Quay lại
+        </button>
+      </div>
+    </div>
+  );
+}
 
+// =============================
+// 404
+// =============================
 
-function AppRoutes() {
+function NotFound() {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+      }}
+    >
+      <div>
+        <h1 style={{ fontSize: "80px" }}>404</h1>
+
+        <h2>Không tìm thấy trang</h2>
+
+        <button
+          onClick={() => {
+            window.location.href = "/";
+          }}
+          style={{
+            padding: "8px 18px",
+            cursor: "pointer",
+          }}
+        >
+          Về trang chủ
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// =============================
+// APP
+// =============================
+
+function App() {
   return (
     <Routes>
 
-      {/* =========================================
-          PUBLIC
-      ========================================== */}
-
-      <Route element={<MainLayout />}>
-
-        <Route
-          path="/"
-          element={<Home />}
-        />
-
-        <Route
-          path="/fields"
-          element={<FieldList />}
-        />
-
-        <Route
-          path="/fields/:id"
-          element={<FieldDetail />}
-        />
-
-      </Route>
-
-
-      {/* =========================================
+      {/* =========================
           AUTH
-      ========================================== */}
+      ========================= */}
 
       <Route
         path="/login"
@@ -90,9 +133,9 @@ function AppRoutes() {
       />
 
 
-      {/* =========================================
+      {/* =========================
           CUSTOMER
-      ========================================== */}
+      ========================= */}
 
       <Route
         element={
@@ -101,127 +144,34 @@ function AppRoutes() {
           />
         }
       >
-
-        <Route element={<MainLayout />}>
-
-          <Route
-            path="/booking"
-            element={<Booking />}
-          />
-
-          <Route
-            path="/booking-confirm"
-            element={<BookingConfirm />}
-          />
-
-          <Route
-            path="/booking-success"
-            element={<BookingSuccess />}
-          />
-
-          <Route
-            path="/booking-history"
-            element={<BookingHistory />}
-          />
-
-          <Route
-            path="/booking-history/:id"
-            element={<BookingDetail />}
-          />
-
-          <Route
-            path="/payment"
-            element={<Payment />}
-          />
-
-          <Route
-            path="/profile"
-            element={<Profile />}
-          />
-
-        </Route>
-
+        <Route
+          path="/"
+          element={<Home />}
+        />
       </Route>
 
 
-      {/* ================= Staff ================= */}
+      {/* =========================
+          ADMIN
+      ========================= */}
 
-<Route
-  element={
-    <ProtectedRoute
-      allowedRoles={["staff"]}
-    />
-  }
->
-  <Route element={<StaffLayout />}>
-
-    <Route
-      path="/staff/dashboard"
-      element={<Dashboard />}
-    />
-
-    <Route
-      path="/staff/field-management"
-      element={<FieldManagement />}
-    />
-
-    <Route
-      path="/staff/booking-management"
-      element={<BookingManagement />}
-    />
-
-    <Route
-      path="/staff/payment-management"
-      element={<PaymentManagement />}
-    />
-
-    <Route
-      path="/staff/statistics"
-      element={<Statistics />}
-    />
-
-  </Route>
-</Route>
+      <Route
+        element={
+          <ProtectedRoute
+            allowedRoles={["admin"]}
+          />
+        }
+      >
+        <Route
+          path="/admin/dashboard"
+          element={<Dashboard />}
+        />
+      </Route>
 
 
-      {/* ================= Admin ================= */}
-
-<Route
-  element={
-    <ProtectedRoute
-      allowedRoles={["admin"]}
-    />
-  }
->
-  <Route element={<AdminLayout />}>
-
-    <Route
-      path="/admin/dashboard"
-      element={<AdminDashboard />}
-    />
-
-    <Route
-      path="/admin/users"
-      element={<UserManagement />}
-    />
-
-    <Route
-      path="/admin/field-types"
-      element={<FieldTypeManagement />}
-    />
-
-    <Route
-      path="/admin/report"
-      element={<Report />}
-    />
-
-  </Route>
-</Route>
-
-
-      {/* =========================================
-          FORBIDDEN
-      ========================================== */}
+      {/* =========================
+          403
+      ========================= */}
 
       <Route
         path="/403"
@@ -229,9 +179,9 @@ function AppRoutes() {
       />
 
 
-      {/* =========================================
-          NOT FOUND
-      ========================================== */}
+      {/* =========================
+          404
+      ========================= */}
 
       <Route
         path="*"
@@ -242,4 +192,4 @@ function AppRoutes() {
   );
 }
 
-export default AppRoutes;
+export default App;

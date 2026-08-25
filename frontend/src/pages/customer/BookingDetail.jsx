@@ -1,544 +1,1577 @@
-import { Badge } from "react-bootstrap";
 import {
-  useLocation,
-  useNavigate,
-  useParams,
+    useEffect,
+    useState,
+} from "react";
+
+import {
+    useNavigate,
+    useParams,
 } from "react-router-dom";
-import { useEffect, useState } from "react";
-import API from "../../config/api";
-import useAuth from "../../hooks/useAuth";
-import formatCurrency from "../../utils/formatCurrency";
+
+import {
+    Badge,
+} from "react-bootstrap";
+
+import apiClient
+    from "../../api/apiClient";
+
+import paymentService
+    from "../../services/paymentService";
+
+import useAuth
+    from "../../hooks/useAuth";
+
+import formatCurrency
+    from "../../utils/formatCurrency";
 
 import "../../assets/styles/booking-detail.css";
 
+
 function BookingDetail() {
- const navigate = useNavigate();
 
-const { state } = useLocation();
+    const navigate =
+        useNavigate();
 
-const { id } = useParams();
-console.log("==========");
-console.log("id =", id);
-console.log("state =", state);
-console.log("==========");
-const { user } = useAuth();
 
-const [booking, setBooking] = useState(state || null);
+    const {
+        id,
+    } = useParams();
 
-const [loading, setLoading] = useState(false);
-const handleCancel = () => {
-  const confirm = window.confirm("Bạn có chắc muốn hủy đặt sân?");
 
-  if (!confirm) return;
+    const {
+        user,
+    } = useAuth();
 
-  const updatedBooking = {
-    ...booking,
-    status: "cancelled",
-  };
 
-  setBooking(updatedBooking);
+    // ==========================================================
+    // STATE
+    // ==========================================================
 
-  // Cập nhật localStorage
-  const bookings =
-    JSON.parse(localStorage.getItem("bookings")) || [];
+    const [
+        booking,
+        setBooking,
+    ] = useState(null);
 
-  const updatedBookings = bookings.map((item) =>
-    item._id === booking._id ? updatedBooking : item
-  );
 
-  localStorage.setItem(
-    "bookings",
-    JSON.stringify(updatedBookings)
-  );
+    const [
+        payment,
+        setPayment,
+    ] = useState(null);
 
-  alert("Đã hủy đặt sân thành công!");
-};
-useEffect(() => {
-  // Nếu đi từ BookingHistory sang thì dùng dữ liệu đã truyền
-  if (state) {
-    setBooking(state);
-    return;
-  }
 
-  // Nếu F5 hoặc truy cập trực tiếp thì đọc từ localStorage
-  const bookings =
-    JSON.parse(localStorage.getItem("bookings")) || [];
+    const [
+        loading,
+        setLoading,
+    ] = useState(true);
 
-  const found = bookings.find(
-    (item) => item._id === id
-  );
 
-  if (found) {
-    setBooking(found);
-  } else {
-    navigate("/booking-history");
-  }
+    const [
+        error,
+        setError,
+    ] = useState("");
 
-  // =============================
-  // Khi backend hoàn thành
-  // =============================
-  /*
-  const fetchBooking = async () => {
-    try {
-      setLoading(true);
 
-      const res = await API.get(`/bookings/${id}`);
+    const [
+        cancelling,
+        setCancelling,
+    ] = useState(false);
 
-      setBooking(res.data.data);
-    } catch (err) {
-      console.error(err);
-      navigate("/booking-history");
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  fetchBooking();
-  */
-}, [id, state, navigate]);
+    // ==========================================================
+    // LOAD BOOKING DETAIL
+    // GET /api/bookings/:id
+    // ==========================================================
 
-if (loading) {
+    const loadBookingDetail =
+        async () => {
 
-  return (
+            if (!id) {
 
-    <div className="container py-5 text-center">
+                setError(
+                    "Không xác định được ID booking."
+                );
 
-      <div className="spinner-border text-success"></div>
+                setLoading(false);
 
-      <p className="mt-3">
+                return;
+            }
 
-        Đang tải...
 
-      </p>
+            try {
 
-    </div>
+                setLoading(true);
+                setError("");
 
-  );
 
-}
+                // ==================================================
+                // BOOKING
+                // ==================================================
 
-if (!booking) {
+                const bookingResponse =
+                    await apiClient(
+                        `/bookings/${id}`,
+                        {
+                            method:
+                                "GET",
+                        }
+                    );
 
-  return (
 
-    <div className="container py-5 text-center">
+                console.log(
+                    "BOOKING DETAIL RESPONSE:",
+                    bookingResponse
+                );
 
-      <h3>Không tìm thấy đơn đặt sân</h3>
 
-      <button
-        className="btn btn-success mt-3"
-        onClick={() => navigate("/booking-history")}
-      >
+                const bookingData =
+                    bookingResponse?.data ||
+                    bookingResponse;
 
-        Quay lại
 
-      </button>
+                if (!bookingData) {
 
-    </div>
+                    throw new Error(
+                        "Không tìm thấy thông tin booking."
+                    );
+                }
 
-  );
 
-}
+                setBooking(
+                    bookingData
+                );
 
-  // =============================
-  // Badge trạng thái
-  // =============================
 
-  const renderStatus = () => {
-    switch (booking.status) {
-      case "pending":
+                // ==================================================
+                // PAYMENT
+                // ==================================================
+                //
+                // Payment có thể chưa tồn tại.
+                // Ví dụ VNPay: booking vừa tạo nhưng
+                // user chưa gửi ảnh xác nhận.
+                //
+                // Vì vậy lỗi payment không được làm
+                // lỗi toàn bộ trang chi tiết booking.
+                //
+                // ==================================================
+
+                try {
+
+                    const paymentResponse =
+                        await paymentService.getMy();
+
+
+                    const payments =
+                        Array.isArray(
+                            paymentResponse?.data
+                        )
+                            ? paymentResponse.data
+                            : [];
+
+
+                    const matchedPayment =
+                        payments.find(
+                            (item) => {
+
+                                const paymentBooking =
+                                    item?.bookingId;
+
+
+                                const paymentBookingId =
+                                    typeof paymentBooking ===
+                                        "object"
+                                        ? paymentBooking?._id
+                                        : paymentBooking;
+
+
+                                return (
+                                    paymentBookingId &&
+                                    String(
+                                        paymentBookingId
+                                    ) ===
+                                    String(
+                                        bookingData._id
+                                    )
+                                );
+                            }
+                        );
+
+
+                    setPayment(
+                        matchedPayment ||
+                        null
+                    );
+
+
+                    console.log(
+                        "MATCHED PAYMENT:",
+                        matchedPayment
+                    );
+
+                } catch (
+                    paymentError
+                ) {
+
+                    console.warn(
+                        "Không tải được payment của booking:",
+                        paymentError
+                    );
+
+
+                    setPayment(
+                        null
+                    );
+                }
+
+            } catch (err) {
+
+                console.error(
+                    "Load booking detail error:",
+                    err
+                );
+
+
+                setError(
+                    err?.data?.message ||
+                    err?.message ||
+                    "Không thể tải chi tiết booking."
+                );
+
+            } finally {
+
+                setLoading(false);
+            }
+        };
+
+
+    // ==========================================================
+    // LOAD WHEN OPEN
+    // ==========================================================
+
+    useEffect(() => {
+
+        loadBookingDetail();
+
+    }, [id]);
+
+
+    // ==========================================================
+    // STATUS TEXT
+    // ==========================================================
+
+    const getStatusText =
+        (
+            status
+        ) => {
+
+            switch (
+                String(
+                    status ||
+                    ""
+                ).toLowerCase()
+            ) {
+
+                case "pending":
+
+                    return "Chờ xác nhận";
+
+
+                case "confirmed":
+
+                    return "Đã xác nhận";
+
+
+                case "cancelled":
+
+                    return "Đã hủy";
+
+
+                default:
+
+                    return "Không xác định";
+            }
+        };
+
+
+    // ==========================================================
+    // STATUS BADGE
+    // ==========================================================
+
+    const renderStatus =
+        () => {
+
+            const status =
+                String(
+                    booking?.status ||
+                    ""
+                ).toLowerCase();
+
+
+            switch (status) {
+
+                case "pending":
+
+                    return (
+                        <Badge
+                            bg="warning"
+                            text="dark"
+                        >
+                            Chờ xác nhận
+                        </Badge>
+                    );
+
+
+                case "confirmed":
+
+                    return (
+                        <Badge
+                            bg="success"
+                        >
+                            Đã xác nhận
+                        </Badge>
+                    );
+
+
+                case "cancelled":
+
+                    return (
+                        <Badge
+                            bg="danger"
+                        >
+                            Đã hủy
+                        </Badge>
+                    );
+
+
+                default:
+
+                    return (
+                        <Badge
+                            bg="secondary"
+                        >
+                            Không xác định
+                        </Badge>
+                    );
+            }
+        };
+
+
+    // ==========================================================
+    // DATE
+    // ==========================================================
+
+    const formatDate =
+        (
+            value
+        ) => {
+
+            if (!value) {
+
+                return "-";
+            }
+
+
+            const date =
+                new Date(
+                    value
+                );
+
+
+            if (
+                Number.isNaN(
+                    date.getTime()
+                )
+            ) {
+
+                return "-";
+            }
+
+
+            return date.toLocaleDateString(
+                "vi-VN"
+            );
+        };
+
+
+    // ==========================================================
+    // DATETIME
+    // ==========================================================
+
+    const formatDateTime =
+        (
+            value
+        ) => {
+
+            if (!value) {
+
+                return "-";
+            }
+
+
+            const date =
+                new Date(
+                    value
+                );
+
+
+            if (
+                Number.isNaN(
+                    date.getTime()
+                )
+            ) {
+
+                return "-";
+            }
+
+
+            return date.toLocaleString(
+                "vi-VN"
+            );
+        };
+
+
+    // ==========================================================
+    // BOOKING CODE
+    // ==========================================================
+
+    const getBookingCode =
+        () => {
+
+            if (
+                booking?.bookingCode
+            ) {
+
+                return booking.bookingCode;
+            }
+
+
+            if (
+                booking?._id
+            ) {
+
+                return (
+                    `BK${String(
+                        booking._id
+                    )
+                        .slice(
+                            -6
+                        )
+                        .toUpperCase()}`
+                );
+            }
+
+
+            return "-";
+        };
+
+
+    // ==========================================================
+    // FIELD
+    // ==========================================================
+
+    const field =
+        booking?.fieldId &&
+        typeof booking.fieldId ===
+            "object"
+            ? booking.fieldId
+            : null;
+
+
+    // ==========================================================
+    // CUSTOMER
+    // ==========================================================
+
+    const customer =
+        booking?.customerId &&
+        typeof booking.customerId ===
+            "object"
+            ? booking.customerId
+            : null;
+
+
+    // ==========================================================
+    // CUSTOMER NAME
+    // ==========================================================
+
+    const customerName =
+        customer?.fullName ||
+        customer?.name ||
+        user?.fullName ||
+        user?.name ||
+        "Khách hàng";
+
+
+    // ==========================================================
+    // CUSTOMER PHONE
+    // ==========================================================
+
+    const customerPhone =
+        customer?.phone ||
+        user?.phone ||
+        "---";
+
+
+    // ==========================================================
+    // CUSTOMER EMAIL
+    // ==========================================================
+
+    const customerEmail =
+        customer?.email ||
+        user?.email ||
+        "---";
+
+
+    // ==========================================================
+    // PAYMENT METHOD
+    // ==========================================================
+
+    const getPaymentMethod =
+        () => {
+
+            if (!payment) {
+
+                return "Chưa có giao dịch";
+            }
+
+
+            switch (
+                String(
+                    payment?.paymentMethod ||
+                    ""
+                ).toLowerCase()
+            ) {
+
+                case "cash":
+
+                    return "Tiền mặt";
+
+
+                case "bank_transfer":
+
+                    return "Chuyển khoản";
+
+
+                case "vnpay":
+
+                    return "VNPay";
+
+
+                default:
+
+                    return (
+                        payment?.paymentMethod ||
+                        "Không xác định"
+                    );
+            }
+        };
+
+
+    // ==========================================================
+    // PAYMENT STATUS
+    // ==========================================================
+
+    const getPaymentStatus =
+        () => {
+
+            if (!payment) {
+
+                return "Chưa có giao dịch";
+            }
+
+
+            switch (
+                String(
+                    payment?.status ||
+                    ""
+                ).toLowerCase()
+            ) {
+
+                case "pending":
+
+                    return "Chờ xác nhận";
+
+
+                case "paid":
+
+                    return "Đã thanh toán";
+
+
+                case "failed":
+
+                    return "Thanh toán thất bại";
+
+
+                case "refunded":
+
+                    return "Đã hoàn tiền";
+
+
+                default:
+
+                    return (
+                        payment?.status ||
+                        "Không xác định"
+                    );
+            }
+        };
+
+
+    // ==========================================================
+    // PAYMENT STATUS BADGE
+    // ==========================================================
+
+    const renderPaymentStatus =
+        () => {
+
+            if (!payment) {
+
+                return (
+                    <Badge
+                        bg="secondary"
+                    >
+                        Chưa có giao dịch
+                    </Badge>
+                );
+            }
+
+
+            switch (
+                String(
+                    payment?.status ||
+                    ""
+                ).toLowerCase()
+            ) {
+
+                case "pending":
+
+                    return (
+                        <Badge
+                            bg="warning"
+                            text="dark"
+                        >
+                            Chờ xác nhận
+                        </Badge>
+                    );
+
+
+                case "paid":
+
+                    return (
+                        <Badge
+                            bg="success"
+                        >
+                            Đã thanh toán
+                        </Badge>
+                    );
+
+
+                case "failed":
+
+                    return (
+                        <Badge
+                            bg="danger"
+                        >
+                            Thất bại
+                        </Badge>
+                    );
+
+
+                case "refunded":
+
+                    return (
+                        <Badge
+                            bg="info"
+                        >
+                            Đã hoàn tiền
+                        </Badge>
+                    );
+
+
+                default:
+
+                    return (
+                        <Badge
+                            bg="secondary"
+                        >
+                            {
+                                getPaymentStatus()
+                            }
+                        </Badge>
+                    );
+            }
+        };
+
+
+    // ==========================================================
+    // PROGRESS STATUS
+    // ==========================================================
+
+    const bookingStatus =
+        String(
+            booking?.status ||
+            ""
+        ).toLowerCase();
+
+
+    const isPending =
+        bookingStatus ===
+        "pending";
+
+
+    const isConfirmed =
+        bookingStatus ===
+        "confirmed";
+
+
+    const isCancelled =
+        bookingStatus ===
+        "cancelled";
+
+
+    // ==========================================================
+    // CANCEL BOOKING
+    // ==========================================================
+
+    const handleCancel =
+        async () => {
+
+            if (
+                !booking?._id ||
+                cancelling
+            ) {
+
+                return;
+            }
+
+
+            const confirmed =
+                window.confirm(
+                    "Bạn có chắc muốn hủy đặt sân này không?"
+                );
+
+
+            if (!confirmed) {
+
+                return;
+            }
+
+
+            try {
+
+                setCancelling(
+                    true
+                );
+
+
+                setError("");
+
+
+                await apiClient(
+                    `/bookings/${booking._id}/cancel`,
+                    {
+                        method:
+                            "PUT",
+                    }
+                );
+
+
+                alert(
+                    "Hủy booking thành công."
+                );
+
+
+                await loadBookingDetail();
+
+            } catch (err) {
+
+                console.error(
+                    "Cancel booking error:",
+                    err
+                );
+
+
+                setError(
+                    err?.data?.message ||
+                    err?.message ||
+                    "Không thể hủy booking."
+                );
+
+            } finally {
+
+                setCancelling(
+                    false
+                );
+            }
+        };
+
+
+    // ==========================================================
+    // LOADING
+    // ==========================================================
+
+    if (loading) {
+
         return (
-          <Badge bg="warning" text="dark">
-            Chờ xác nhận
-          </Badge>
-        );
 
-      case "confirmed":
-        return (
-          <Badge bg="success">
-            Đã xác nhận
-          </Badge>
-        );
+            <div className="container py-5 text-center">
 
-      case "cancelled":
-        return (
-          <Badge bg="danger">
-            Đã hủy
-          </Badge>
-        );
+                <div
+                    className="spinner-border text-success"
+                    role="status"
+                />
 
-      default:
-        return (
-          <Badge bg="secondary">
-            Không xác định
-          </Badge>
-        );
-    }
-  };
-  const isPending = booking.status === "pending";
-const isConfirmed = booking.status === "confirmed";
-const isCancelled = booking.status === "cancelled";
-  return (
-    <div className="container py-4">
-
-      {/* ================= Header ================= */}
-
-      <h2 className="fw-bold text-success mb-4">
-
-        Chi tiết đặt sân
-
-      </h2>
-
-      {/* ================= Progress ================= */}
-
-<div className="booking-progress mb-5">
-
-  <div className="step active">
-    ✓
-    <span>Đặt lịch</span>
-  </div>
-
-  <div className="line active"></div>
-
-  <div className="step active">
-    ✓
-    <span>Thanh toán</span>
-  </div>
-
-  <div className={`line ${isConfirmed ? "active" : ""}`}></div>
-
-  <div className={`step ${isConfirmed ? "active" : ""}`}>
-    {isConfirmed ? "✓" : isCancelled ? "✕" : "⏳"}
-
-    <span>
-      {isConfirmed
-        ? "Hoàn tất"
-        : isCancelled
-        ? "Đã hủy"
-        : "Chờ xác nhận"}
-    </span>
-  </div>
-
-</div>
-
-      {/* ================= Thông tin sân ================= */}
-
-      <div className="card shadow-sm border-0 mb-4">
-
-        <div className="card-body">
-
-          <div className="row">
-
-            <div className="col-md-4">
-
-              <img
-                src={booking.field.image}
-                alt={booking.field.fieldName}
-                className="detail-image"
-              />
+                <p className="mt-3">
+                    Đang tải chi tiết đơn đặt sân...
+                </p>
 
             </div>
+        );
+    }
 
-            <div className="col-md-8">
 
-              <div className="d-flex justify-content-between">
+    // ==========================================================
+    // ERROR
+    // ==========================================================
 
-                <h3 className="fw-bold">
+    if (
+        error &&
+        !booking
+    ) {
 
-                  {booking.field.fieldName}
+        return (
 
+            <div className="container py-5">
+
+                <div className="alert alert-danger">
+
+                    <i className="bi bi-exclamation-triangle-fill me-2"></i>
+
+                    {error}
+
+                </div>
+
+
+                <button
+                    type="button"
+                    className="btn btn-success"
+                    onClick={() =>
+                        navigate(
+                            "/booking-history"
+                        )
+                    }
+                >
+
+                    ← Quay lại lịch sử đặt sân
+
+                </button>
+
+            </div>
+        );
+    }
+
+
+    // ==========================================================
+    // NO BOOKING
+    // ==========================================================
+
+    if (!booking) {
+
+        return (
+
+            <div className="container py-5 text-center">
+
+                <h3>
+                    Không tìm thấy đơn đặt sân
                 </h3>
+
+
+                <button
+                    type="button"
+                    className="btn btn-success mt-3"
+                    onClick={() =>
+                        navigate(
+                            "/booking-history"
+                        )
+                    }
+                >
+
+                    Quay lại
+
+                </button>
+
+            </div>
+        );
+    }
+
+
+    // ==========================================================
+    // RENDER
+    // ==========================================================
+
+    return (
+
+        <div className="container py-4">
+
+            {/* ==================================================
+                ERROR
+            ================================================== */}
+
+            {error && (
+
+                <div className="alert alert-danger">
+
+                    <i className="bi bi-exclamation-triangle-fill me-2"></i>
+
+                    {error}
+
+                </div>
+            )}
+
+
+            {/* ==================================================
+                HEADER
+            ================================================== */}
+
+            <div className="d-flex justify-content-between align-items-center mb-4">
+
+                <h2 className="fw-bold text-success mb-0">
+
+                    Chi tiết đặt sân
+
+                </h2>
+
 
                 {renderStatus()}
 
-              </div>
+            </div>
 
-              <p className="text-muted mt-3">
 
-                📍 {booking.field.location}
+            {/* ==================================================
+                PROGRESS
+            ================================================== */}
 
-              </p>
+            <div className="booking-progress mb-5">
 
-              <h2 className="text-success fw-bold">
+                <div className="step active">
 
-                {formatCurrency(booking.totalPrice)}
+                    ✓
 
-              </h2>
+                    <span>
+                        Đặt lịch
+                    </span>
+
+                </div>
+
+
+                <div className="line active"></div>
+
+
+                <div className="step active">
+
+                    ✓
+
+                    <span>
+                        Thanh toán
+                    </span>
+
+                </div>
+
+
+                <div
+                    className={
+                        `line ${
+                            isConfirmed
+                                ? "active"
+                                : ""
+                        }`
+                    }
+                ></div>
+
+
+                <div
+                    className={
+                        `step ${
+                            isConfirmed ||
+                            isCancelled
+                                ? "active"
+                                : ""
+                        }`
+                    }
+                >
+
+                    {
+                        isConfirmed
+                            ? "✓"
+                            : isCancelled
+                                ? "✕"
+                                : "⏳"
+                    }
+
+
+                    <span>
+
+                        {
+                            isConfirmed
+                                ? "Đã xác nhận"
+                                : isCancelled
+                                    ? "Đã hủy"
+                                    : "Chờ xác nhận"
+                        }
+
+                    </span>
+
+                </div>
 
             </div>
 
-          </div>
+
+            {/* ==================================================
+                FIELD
+            ================================================== */}
+
+            <div className="card shadow-sm border-0 mb-4">
+
+                <div className="card-body">
+
+                    <div className="row">
+
+                        <div className="col-md-4">
+
+                            {
+                                field?.image ? (
+
+                                    <img
+                                        src={
+                                            field.image
+                                        }
+                                        alt={
+                                            field?.fieldName ||
+                                            "Sân thể thao"
+                                        }
+                                        className="detail-image"
+                                        onError={(
+                                            e
+                                        ) => {
+
+                                            e.currentTarget.style.display =
+                                                "none";
+                                        }}
+                                    />
+
+                                ) : (
+
+                                    <div
+                                        className="bg-light rounded d-flex align-items-center justify-content-center"
+                                        style={{
+                                            height:
+                                                "250px",
+                                        }}
+                                    >
+
+                                        <i
+                                            className="bi bi-image text-muted"
+                                            style={{
+                                                fontSize:
+                                                    "55px",
+                                            }}
+                                        />
+
+                                    </div>
+                                )
+                            }
+
+                        </div>
+
+
+                        <div className="col-md-8">
+
+                            <div className="d-flex justify-content-between align-items-start">
+
+                                <div>
+
+                                    <h3 className="fw-bold">
+
+                                        {
+                                            field?.fieldName ||
+                                            "Sân không xác định"
+                                        }
+
+                                    </h3>
+
+
+                                    <p className="text-muted mt-3">
+
+                                        <i className="bi bi-geo-alt-fill me-2"></i>
+
+                                        {
+                                            field?.location ||
+                                            "Chưa cập nhật"
+                                        }
+
+                                    </p>
+
+                                </div>
+
+
+                                {renderStatus()}
+
+                            </div>
+
+
+                            <h2 className="text-success fw-bold mt-4">
+
+                                {
+                                    formatCurrency(
+                                        booking.totalPrice ||
+                                        0
+                                    )
+                                }
+
+                            </h2>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {/* ==================================================
+                BOOKING INFO
+            ================================================== */}
+
+            <div className="card shadow-sm border-0 mb-4">
+
+                <div className="card-body">
+
+                    <h4 className="fw-bold mb-3">
+
+                        📅 Thông tin đặt sân
+
+                    </h4>
+
+
+                    <table className="table">
+
+                        <tbody>
+
+                            <tr>
+
+                                <th width="220">
+                                    Mã đặt sân
+                                </th>
+
+                                <td>
+
+                                    {
+                                        getBookingCode()
+                                    }
+
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <th>
+                                    Ngày đặt
+                                </th>
+
+                                <td>
+
+                                    {
+                                        formatDate(
+                                            booking.bookingDate
+                                        )
+                                    }
+
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <th>
+                                    Khung giờ
+                                </th>
+
+                                <td>
+
+                                    {
+                                        booking.startTime ||
+                                        "-"
+                                    }
+
+                                    {" - "}
+
+                                    {
+                                        booking.endTime ||
+                                        "-"
+                                    }
+
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <th>
+                                    Tổng tiền
+                                </th>
+
+                                <td className="fw-bold text-success">
+
+                                    {
+                                        formatCurrency(
+                                            booking.totalPrice ||
+                                            0
+                                        )
+                                    }
+
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <th>
+                                    Trạng thái
+                                </th>
+
+                                <td>
+
+                                    {
+                                        renderStatus()
+                                    }
+
+                                </td>
+
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+
+            {/* ==================================================
+                CUSTOMER
+            ================================================== */}
+
+            <div className="card shadow-sm border-0 mb-4">
+
+                <div className="card-body">
+
+                    <h4 className="fw-bold mb-3">
+
+                        👤 Người đặt
+
+                    </h4>
+
+
+                    <table className="table">
+
+                        <tbody>
+
+                            <tr>
+
+                                <th width="220">
+                                    Họ và tên
+                                </th>
+
+                                <td>
+
+                                    {
+                                        customerName
+                                    }
+
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <th>
+                                    Số điện thoại
+                                </th>
+
+                                <td>
+
+                                    {
+                                        customerPhone
+                                    }
+
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <th>
+                                    Email
+                                </th>
+
+                                <td>
+
+                                    {
+                                        customerEmail
+                                    }
+
+                                </td>
+
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+
+            {/* ==================================================
+                PAYMENT
+            ================================================== */}
+
+            <div className="card shadow-sm border-0 mb-4">
+
+                <div className="card-body">
+
+                    <h4 className="fw-bold mb-3">
+
+                        💳 Thanh toán
+
+                    </h4>
+
+
+                    <table className="table">
+
+                        <tbody>
+
+                            <tr>
+
+                                <th width="220">
+                                    Phương thức
+                                </th>
+
+                                <td>
+
+                                    {
+                                        getPaymentMethod()
+                                    }
+
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <th>
+                                    Trạng thái
+                                </th>
+
+                                <td>
+
+                                    {
+                                        renderPaymentStatus()
+                                    }
+
+                                </td>
+
+                            </tr>
+
+
+                            {
+                                payment?.transactionId && (
+
+                                    <tr>
+
+                                        <th>
+                                            Mã giao dịch
+                                        </th>
+
+                                        <td>
+                                            <strong>
+                                                {
+                                                    payment.transactionId
+                                                }
+                                            </strong>
+                                        </td>
+
+                                    </tr>
+                                )
+                            }
+
+
+                            {
+                                payment?.paymentProof && (
+
+                                    <tr>
+
+                                        <th>
+                                            Ảnh xác nhận
+                                        </th>
+
+                                        <td>
+
+                                            <a
+                                                href={
+                                                    payment.paymentProof
+                                                }
+                                                target="_blank"
+                                                rel="noreferrer"
+                                            >
+                                                Xem ảnh xác nhận
+                                            </a>
+
+                                        </td>
+
+                                    </tr>
+                                )
+                            }
+
+
+                            {
+                                payment?.createdAt && (
+
+                                    <tr>
+
+                                        <th>
+                                            Thời gian tạo thanh toán
+                                        </th>
+
+                                        <td>
+                                            {
+                                                formatDateTime(
+                                                    payment.createdAt
+                                                )
+                                            }
+                                        </td>
+
+                                    </tr>
+                                )
+                            }
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+
+            {/* ==================================================
+                NOTE
+            ================================================== */}
+
+            <div className="card shadow-sm border-0 mb-4">
+
+                <div className="card-body">
+
+                    <h4 className="fw-bold mb-3">
+
+                        📝 Ghi chú
+
+                    </h4>
+
+
+                    <p className="text-muted mb-0">
+
+                        {
+                            booking.note ||
+                            "Không có ghi chú."
+                        }
+
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            {/* ==================================================
+                BUTTONS
+            ================================================== */}
+
+            <div className="d-flex justify-content-between">
+
+                <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-lg"
+                    onClick={() =>
+                        navigate(
+                            "/booking-history"
+                        )
+                    }
+                >
+
+                    ← Quay lại
+
+                </button>
+
+
+                {
+                    (
+                        isPending ||
+                        isConfirmed
+                    ) &&
+                    !isCancelled && (
+
+                        <button
+                            type="button"
+                            className="btn btn-danger btn-lg"
+                            onClick={
+                                handleCancel
+                            }
+                            disabled={
+                                cancelling
+                            }
+                        >
+
+                            {
+                                cancelling ? (
+
+                                    <>
+                                        <span
+                                            className="spinner-border spinner-border-sm me-2"
+                                        />
+
+                                        Đang hủy...
+
+                                    </>
+
+                                ) : (
+
+                                    <>
+                                        <i className="bi bi-x-circle me-2"></i>
+
+                                        Hủy booking
+                                    </>
+                                )
+                            }
+
+                        </button>
+                    )
+                }
+
+            </div>
 
         </div>
-
-      </div>
-
-      {/* ================= Thông tin đặt sân ================= */}
-
-      <div className="card shadow-sm border-0 mb-4">
-
-        <div className="card-body">
-
-          <h4 className="fw-bold mb-3">
-
-            📅 Thông tin đặt sân
-
-          </h4>
-
-          <table className="table">
-
-            <tbody>
-
-              <tr>
-
-                <th width="220">
-
-                  Mã đặt sân
-
-                </th>
-
-                <td>
-
-                  {booking.bookingCode}
-
-                </td>
-
-              </tr>
-
-              <tr>
-
-                <th>
-
-                  Ngày đặt
-
-                </th>
-
-                <td>
-
-                  {booking.bookingDate}
-
-                </td>
-
-              </tr>
-
-              <tr>
-
-                <th>
-
-                  Khung giờ
-
-                </th>
-
-                <td>
-
-                  {booking.startTime} - {booking.endTime}
-
-                </td>
-
-              </tr>
-
-              <tr>
-
-                <th>
-
-                  Tổng tiền
-
-                </th>
-
-                <td className="fw-bold text-success">
-
-                  {formatCurrency(booking.totalPrice)}
-
-                </td>
-
-              </tr>
-
-            </tbody>
-
-          </table>
-
-        </div>
-
-      </div>
-
-      {/* ================= Người đặt ================= */}
-
-      <div className="card shadow-sm border-0 mb-4">
-
-        <div className="card-body">
-
-          <h4 className="fw-bold mb-3">
-
-            👤 Người đặt
-
-          </h4>
-
-          <table className="table">
-
-            <tbody>
-
-              <tr>
-
-                <th width="220">
-
-                  Họ và tên
-
-                </th>
-
-                <td>
-
-                  {booking.user?.fullName || user?.fullName || "Khách hàng"}
-
-                </td>
-
-              </tr>
-
-              <tr>
-
-                <th>
-
-                  Số điện thoại
-
-                </th>
-
-                <td>
-
-                  {booking.user?.phone || user?.phone || "---"}
-
-                </td>
-
-              </tr>
-
-              <tr>
-
-                <th>
-
-                  Email
-
-                </th>
-
-                <td>
-
-                  {booking.user?.email || user?.email || "---"}
-
-                </td>
-
-              </tr>
-
-            </tbody>
-
-          </table>
-
-        </div>
-
-      </div>
-
-      {/* ================= Thanh toán ================= */}
-
-      <div className="card shadow-sm border-0 mb-4">
-
-        <div className="card-body">
-
-          <h4 className="fw-bold mb-3">
-
-            💳 Thanh toán
-
-          </h4>
-
-          <table className="table">
-
-            <tbody>
-
-              <tr>
-
-                <th width="220">
-
-                  Phương thức
-
-                </th>
-
-                <td>
-
-                  {booking.paymentMethod}
-
-                </td>
-
-              </tr>
-
-              <tr>
-
-                <th>
-
-                  Trạng thái
-
-                </th>
-
-                <td>
-
-                  {renderStatus()}
-
-                </td>
-
-              </tr>
-
-            </tbody>
-
-          </table>
-
-        </div>
-
-      </div>
-
-      {/* ================= Ghi chú ================= */}
-
-      <div className="card shadow-sm border-0 mb-4">
-
-        <div className="card-body">
-
-          <h4 className="fw-bold mb-3">
-
-            📝 Ghi chú
-
-          </h4>
-
-          <p className="text-muted">
-
-            {booking.note || "Không có ghi chú."}
-
-          </p>
-
-        </div>
-
-      </div>
-
-      {/* ================= Button ================= */}
-
-      <div className="d-flex justify-content-between">
-
-        <button
-          className="btn btn-outline-secondary btn-lg"
-          onClick={() => navigate(-1)}
-        >
-
-          ← Quay lại
-
-        </button>
-
-        {booking.status === "pending" && (
-
-          <button
-            className="btn btn-danger btn-lg"
-            onClick={handleCancel}
-          >
-            Hủy đặt sân
-          </button>
-
-        )}
-
-      </div>
-
-    </div>
-  );
+    );
 }
+
 
 export default BookingDetail;

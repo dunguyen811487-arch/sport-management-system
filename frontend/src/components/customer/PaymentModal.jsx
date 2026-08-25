@@ -1,365 +1,819 @@
 import { useState } from "react";
-import { Modal, Button, Form } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
+
+import {
+    Modal,
+    Button,
+    Form,
+} from "react-bootstrap";
+
+import {
+    useNavigate,
+} from "react-router-dom";
 
 import useAuth from "../../hooks/useAuth";
+
 import formatCurrency from "../../utils/formatCurrency";
 
+import {
+    createBookingApi,
+} from "../../api/bookingApi";
+
+import paymentService from "../../services/paymentService";
+
+
 function PaymentModal({
-  show,
-  onClose,
-  booking,
+    show,
+    onClose,
+    booking,
 }) {
-  const navigate = useNavigate();
 
-  const { user } = useAuth();
+    const navigate =
+        useNavigate();
 
-  const [method, setMethod] = useState("cash");
+    const {
+        user,
+    } = useAuth();
 
-  // =============================
-  // Tiếp tục thanh toán
-  // =============================
 
-  const handleContinue = () => {
-    // =============================
-    // Kiểm tra booking
-    // =============================
+    // ==========================================================
+    // STATE
+    // ==========================================================
 
-    if (!booking || !booking.field) {
-      alert("Không tìm thấy thông tin đặt sân.");
-      return;
-    }
+    const [
+        method,
+        setMethod,
+    ] = useState("cash");
 
-    if (
-      !booking.selectedSlots ||
-      booking.selectedSlots.length === 0
-    ) {
-      alert("Không tìm thấy khung giờ đặt sân.");
-      return;
-    }
 
-    // =============================
-    // Tạo mã đặt sân
-    // =============================
+    const [
+        loading,
+        setLoading,
+    ] = useState(false);
 
-    const bookingCode =
-      "BK" +
-      Date.now().toString().slice(-6);
 
-    // =============================
-    // Tính giờ bắt đầu - kết thúc
-    // =============================
+    // ==========================================================
+    // HANDLE CONTINUE
+    // ==========================================================
 
-    const sortedSlots = [
-      ...booking.selectedSlots,
-    ].sort();
+    const handleContinue = async () => {
 
-    const startTime = sortedSlots[0];
+        // ======================================================
+        // 1. KIỂM TRA BOOKING
+        // ======================================================
 
-    const endHour =
-      parseInt(
-        sortedSlots[
-          sortedSlots.length - 1
-        ].split(":")[0],
-        10
-      ) + 1;
+        if (
+            !booking ||
+            !booking.field
+        ) {
 
-    const endTime =
-      `${String(endHour).padStart(2, "0")}:00`;
+            alert(
+                "Không tìm thấy thông tin đặt sân."
+            );
 
-    // =============================
-    // Xác định phương thức
-    // =============================
+            return;
+        }
 
-    const paymentMethod =
-      method === "cash"
-        ? "Tiền mặt"
-        : method === "vnpay"
-        ? "VNPay"
-        : "MoMo";
 
-    // =============================
-    // Trạng thái thanh toán
-    // =============================
+        // ======================================================
+        // 2. KIỂM TRA KHUNG GIỜ
+        // ======================================================
 
-    let paymentStatus = "pending";
+        if (
+            !Array.isArray(
+                booking.selectedSlots
+            ) ||
+            booking.selectedSlots.length === 0
+        ) {
 
-    /*
-      cash:
-      → Chưa thanh toán
-      → Nhân viên xác nhận sau
+            alert(
+                "Không tìm thấy khung giờ đặt sân."
+            );
 
-      vnpay:
-      → Chưa xác nhận
-      → Khách chuyển khoản rồi gửi yêu cầu
-      → Nhân viên xác nhận
+            return;
+        }
 
-      momo:
-      → Chưa triển khai
-    */
 
-    // =============================
-    // Booking object
-    // =============================
+        // ======================================================
+        // 3. KIỂM TRA USER
+        // ======================================================
 
-    const bookingData = {
-      _id: Date.now().toString(),
+        if (!user) {
 
-      bookingCode,
+            alert(
+                "Phiên đăng nhập đã hết. Vui lòng đăng nhập lại."
+            );
 
-      userId: user?.id,
+            onClose();
 
-      field: booking.field,
+            navigate(
+                "/login"
+            );
 
-      bookingDate: booking.bookingDate,
+            return;
+        }
 
-      startTime,
 
-      endTime,
+        // ======================================================
+        // 4. USER ID
+        // ======================================================
 
-      selectedSlots: booking.selectedSlots,
+        const userId =
+            user?._id ||
+            user?.id;
 
-      totalHours: booking.totalHours,
 
-      totalPrice: booking.totalPrice,
+        if (!userId) {
 
-      paymentMethod,
+            console.error(
+                "USER KHÔNG CÓ ID:",
+                user
+            );
 
-      paymentStatus,
+            alert(
+                "Không xác định được tài khoản đang đăng nhập."
+            );
 
-      status: "pending",
+            return;
+        }
 
-      note: booking.note || "",
 
-      /*
-        Dùng để đánh dấu khách đã gửi
-        yêu cầu xác nhận thanh toán.
-      */
-      paymentConfirmationRequested: false,
+        // ======================================================
+        // 5. MOMO CHƯA HỖ TRỢ
+        // ======================================================
 
-      user: {
-        fullName: user?.fullName,
-        phone: user?.phone,
-        email: user?.email,
-      },
+        if (
+            method === "momo"
+        ) {
+
+            alert(
+                "MoMo chưa được triển khai. Vui lòng chọn Tiền mặt hoặc VNPay."
+            );
+
+            return;
+        }
+
+
+        // ======================================================
+        // 6. SORT SLOT
+        // ======================================================
+
+        const sortedSlots = [
+            ...booking.selectedSlots,
+        ].sort();
+
+
+        const startTime =
+            sortedSlots[0];
+
+
+        // ======================================================
+        // 7. END TIME
+        // ======================================================
+
+        const lastHour =
+            parseInt(
+                sortedSlots[
+                    sortedSlots.length - 1
+                ].split(":")[0],
+                10
+            ) + 1;
+
+
+        const endTime =
+            `${String(
+                lastHour
+            ).padStart(
+                2,
+                "0"
+            )}:00`;
+
+
+        // ======================================================
+        // 8. VALIDATE TIME
+        // ======================================================
+
+        if (
+            !startTime ||
+            !endTime
+        ) {
+
+            alert(
+                "Khung giờ đặt sân không hợp lệ."
+            );
+
+            return;
+        }
+
+
+        // ======================================================
+        // 9. HIỂN THỊ PHƯƠNG THỨC
+        // ======================================================
+
+        const displayPaymentMethod =
+            method === "cash"
+                ? "Tiền mặt"
+                : "VNPay";
+
+
+        try {
+
+            setLoading(
+                true
+            );
+
+
+            // ==================================================
+            // 10. CREATE BOOKING
+            // ==================================================
+
+            const bookingRequest = {
+
+                fieldId:
+                    booking.field._id,
+
+                bookingDate:
+                    booking.bookingDate,
+
+                startTime,
+
+                endTime,
+
+                note:
+                    booking.note ||
+                    "",
+            };
+
+
+            console.log(
+                "POST /api/bookings:",
+                bookingRequest
+            );
+
+
+            const bookingResponse =
+                await createBookingApi(
+                    bookingRequest
+                );
+
+
+            console.log(
+                "CREATE BOOKING RESPONSE:",
+                bookingResponse
+            );
+
+
+            // ==================================================
+            // 11. KIỂM TRA BOOKING
+            // ==================================================
+
+            if (
+                !bookingResponse ||
+                bookingResponse.success !== true ||
+                !bookingResponse.data
+            ) {
+
+                throw new Error(
+                    bookingResponse?.message ||
+                    "Không thể tạo booking."
+                );
+            }
+
+
+            // ==================================================
+            // 12. BOOKING ĐÃ LƯU
+            // ==================================================
+
+            const savedBooking =
+                bookingResponse.data;
+
+
+            const bookingId =
+                savedBooking?._id;
+
+
+            if (!bookingId) {
+
+                throw new Error(
+                    "Backend không trả về ID booking."
+                );
+            }
+
+
+            console.log(
+                "BOOKING ĐÃ LƯU:",
+                savedBooking
+            );
+
+
+            // ==================================================
+            // 13. DỮ LIỆU DÙNG CHUNG
+            // ==================================================
+
+            const bookingData = {
+
+                bookingId,
+
+                bookingCode:
+                    savedBooking.bookingCode ||
+                    `BK${String(
+                        bookingId
+                    )
+                        .slice(-6)
+                        .toUpperCase()}`,
+
+                customerId:
+                    userId,
+
+                field:
+                    booking.field,
+
+                fieldId:
+                    savedBooking.fieldId,
+
+                bookingDate:
+                    savedBooking.bookingDate,
+
+                startTime:
+                    savedBooking.startTime,
+
+                endTime:
+                    savedBooking.endTime,
+
+                selectedSlots:
+                    booking.selectedSlots,
+
+                totalHours:
+                    booking.totalHours,
+
+                totalPrice:
+                    savedBooking.totalPrice,
+
+                status:
+                    savedBooking.status ||
+                    "pending",
+
+                note:
+                    savedBooking.note ||
+                    "",
+
+                paymentMethod:
+                    displayPaymentMethod,
+
+                paymentStatus:
+                    "pending",
+
+                user: {
+
+                    _id:
+                        user?._id,
+
+                    fullName:
+                        user?.fullName,
+
+                    phone:
+                        user?.phone,
+
+                    email:
+                        user?.email,
+                },
+            };
+
+
+            // ==================================================
+            // 14. TIỀN MẶT
+            // ==================================================
+
+            if (
+                method === "cash"
+            ) {
+
+                console.log(
+                    "POST /api/payments CASH:",
+                    {
+                        bookingId,
+                        paymentMethod:
+                            "cash",
+                    }
+                );
+
+
+                const paymentResponse =
+                    await paymentService.create(
+                        {
+                            bookingId,
+
+                            paymentMethod:
+                                "cash",
+
+                            transactionCode:
+                                "",
+                        }
+                    );
+
+
+                console.log(
+                    "CREATE CASH PAYMENT RESPONSE:",
+                    JSON.stringify(
+                        paymentResponse,
+                        null,
+                        2
+                    )
+                );
+
+
+                // ------------------------------------------------
+                // PAYMENT THÀNH CÔNG
+                // ------------------------------------------------
+
+                if (
+                    paymentResponse?.success ===
+                    true
+                ) {
+
+                    const savedPayment =
+                        paymentResponse.data;
+
+
+                    console.log(
+                        "PAYMENT ĐÃ LƯU:",
+                        savedPayment
+                    );
+
+
+                    const successBooking = {
+
+                        ...bookingData,
+
+                        paymentId:
+                            savedPayment?._id ||
+                            null,
+
+                        paymentStatus:
+                            savedPayment?.status ||
+                            "pending",
+
+                        status:
+                            savedBooking.status ||
+                            "pending",
+                    };
+
+
+                    onClose();
+
+
+                    navigate(
+                        "/booking-success",
+                        {
+                            state: {
+                                booking:
+                                    successBooking,
+                            },
+                        }
+                    );
+
+
+                    return;
+                }
+
+
+                // ------------------------------------------------
+                // PAYMENT THẤT BẠI
+                // ------------------------------------------------
+
+                throw new Error(
+                    paymentResponse?.message ||
+                    "Không thể tạo payment."
+                );
+            }
+
+
+            // ==================================================
+            // 15. VNPAY
+            // ==================================================
+            //
+            // Booking đã được tạo.
+            // Payment sẽ được tạo ở Payment.jsx
+            // sau khi khách nhập transactionCode.
+            // ==================================================
+
+            if (
+                method === "vnpay"
+            ) {
+
+                onClose();
+
+
+                navigate(
+                    "/payment",
+                    {
+                        state:
+                            bookingData,
+                    }
+                );
+
+
+                return;
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Create booking/payment error:",
+                error
+            );
+
+
+            alert(
+                error?.response
+                    ?.data
+                    ?.message ||
+                error?.message ||
+                "Không thể hoàn tất đặt sân."
+            );
+
+        } finally {
+
+            setLoading(
+                false
+            );
+        }
     };
 
-    // =============================
-    // Lưu LocalStorage
-    // =============================
 
-    const oldBookings = JSON.parse(
-      localStorage.getItem("bookings") || "[]"
-    );
+    // ==========================================================
+    // RENDER
+    // ==========================================================
 
-    oldBookings.unshift(bookingData);
+    return (
 
-    localStorage.setItem(
-      "bookings",
-      JSON.stringify(oldBookings)
-    );
+        <Modal
+            show={show}
+            onHide={() => {
 
-    // =============================
-    // TIỀN MẶT
-    // =============================
+                if (!loading) {
+                    onClose();
+                }
 
-    if (method === "cash") {
-      onClose();
-
-      navigate("/booking-success", {
-        state: bookingData,
-      });
-
-      return;
-    }
-
-    // =============================
-    // VNPAY
-    // =============================
-
-    if (method === "vnpay") {
-      onClose();
-
-      navigate("/payment", {
-        state: bookingData,
-      });
-
-      return;
-    }
-
-    // =============================
-    // MOMO
-    // =============================
-
-    if (method === "momo") {
-      alert(
-        "MoMo sẽ được cập nhật trong phiên bản tiếp theo."
-      );
-
-      return;
-    }
-  };
-
-  return (
-    <Modal
-      show={show}
-      onHide={onClose}
-      centered
-      size="lg"
-    >
-      <Modal.Header closeButton>
-        <Modal.Title>
-          💳 Chọn phương thức thanh toán
-        </Modal.Title>
-      </Modal.Header>
-
-      <Modal.Body>
-
-        {/* =============================
-            Tổng thanh toán
-        ============================== */}
-
-        <div className="alert alert-success">
-          <div className="d-flex justify-content-between">
-            <span>
-              Tổng thanh toán
-            </span>
-
-            <strong>
-              {formatCurrency(
-                booking?.totalPrice || 0
-              )}
-            </strong>
-          </div>
-        </div>
-
-        <Form>
-
-          {/* =============================
-              Tiền mặt
-          ============================== */}
-
-          <div className="payment-method mb-3">
-
-            <Form.Check
-              type="radio"
-              id="cash"
-              name="payment"
-              checked={method === "cash"}
-              onChange={() =>
-                setMethod("cash")
-              }
-              label={
-                <div>
-                  <h6 className="mb-1">
-                    💵 Thanh toán tại quầy
-                  </h6>
-
-                  <small className="text-muted">
-                    Thanh toán trực tiếp khi đến sân.
-                    Nhân viên sẽ xác nhận thanh toán.
-                  </small>
-                </div>
-              }
-            />
-
-          </div>
-
-          {/* =============================
-              VNPay
-          ============================== */}
-
-          <div className="payment-method mb-3">
-
-            <Form.Check
-              type="radio"
-              id="vnpay"
-              name="payment"
-              checked={method === "vnpay"}
-              onChange={() =>
-                setMethod("vnpay")
-              }
-              label={
-                <div>
-                  <h6 className="mb-1">
-                    💳 VNPay
-                  </h6>
-
-                  <small className="text-muted">
-                    Thanh toán online bằng VNPay.
-                    Sau khi chuyển khoản, nhân viên
-                    sẽ kiểm tra và xác nhận.
-                  </small>
-                </div>
-              }
-            />
-
-          </div>
-
-          {/* =============================
-              MoMo
-          ============================== */}
-
-          <div className="payment-method">
-
-            <Form.Check
-              type="radio"
-              id="momo"
-              name="payment"
-              checked={method === "momo"}
-              onChange={() =>
-                setMethod("momo")
-              }
-              label={
-                <div className="d-flex justify-content-between align-items-center w-100">
-
-                  <div>
-
-                    <h6 className="mb-1">
-                      📱 MoMo
-                    </h6>
-
-                    <small className="text-muted">
-                      Sẽ được cập nhật trong
-                      phiên bản tiếp theo.
-                    </small>
-
-                  </div>
-
-                  <span className="badge bg-warning text-dark">
-                    Soon
-                  </span>
-
-                </div>
-              }
-            />
-
-          </div>
-
-        </Form>
-
-      </Modal.Body>
-
-      <Modal.Footer>
-
-        <Button
-          variant="secondary"
-          onClick={onClose}
+            }}
+            centered
+            size="lg"
+            backdrop="static"
         >
-          Hủy
-        </Button>
 
-        <Button
-          variant="success"
-          onClick={handleContinue}
-        >
-          Tiếp tục
-        </Button>
+            <Modal.Header
+                closeButton={!loading}
+            >
 
-      </Modal.Footer>
+                <Modal.Title>
+                    💳 Chọn phương thức thanh toán
+                </Modal.Title>
 
-    </Modal>
-  );
+            </Modal.Header>
+
+
+            <Modal.Body>
+
+                {/* ==================================================
+                    TOTAL
+                ================================================== */}
+
+                <div className="alert alert-success">
+
+                    <div className="d-flex justify-content-between">
+
+                        <span>
+                            Tổng thanh toán
+                        </span>
+
+                        <strong>
+
+                            {
+                                formatCurrency(
+                                    booking?.totalPrice ||
+                                    0
+                                )
+                            }
+
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <Form>
+
+                    {/* ==================================================
+                        CASH
+                    ================================================== */}
+
+                    <div className="payment-method mb-3">
+
+                        <Form.Check
+
+                            type="radio"
+
+                            id="cash"
+
+                            name="payment"
+
+                            checked={
+                                method === "cash"
+                            }
+
+                            disabled={
+                                loading
+                            }
+
+                            onChange={() =>
+                                setMethod(
+                                    "cash"
+                                )
+                            }
+
+                            label={
+
+                                <div>
+
+                                    <h6 className="mb-1">
+                                        💵 Thanh toán tại quầy
+                                    </h6>
+
+                                    <small className="text-muted">
+
+                                        Thanh toán trực tiếp khi đến sân.
+                                        Nhân viên/Admin sẽ xác nhận thanh toán.
+
+                                    </small>
+
+                                </div>
+                            }
+
+                        />
+
+                    </div>
+
+
+                    {/* ==================================================
+                        VNPAY
+                    ================================================== */}
+
+                    <div className="payment-method mb-3">
+
+                        <Form.Check
+
+                            type="radio"
+
+                            id="vnpay"
+
+                            name="payment"
+
+                            checked={
+                                method === "vnpay"
+                            }
+
+                            disabled={
+                                loading
+                            }
+
+                            onChange={() =>
+                                setMethod(
+                                    "vnpay"
+                                )
+                            }
+
+                            label={
+
+                                <div>
+
+                                    <h6 className="mb-1">
+                                        💳 VNPay / Chuyển khoản
+                                    </h6>
+
+                                    <small className="text-muted">
+
+                                        Sau khi chuyển khoản,
+                                        bạn sẽ nhập mã giao dịch
+                                        để gửi yêu cầu xác nhận.
+
+                                    </small>
+
+                                </div>
+                            }
+
+                        />
+
+                    </div>
+
+
+                    {/* ==================================================
+                        MOMO
+                    ================================================== */}
+
+                    <div className="payment-method">
+
+                        <Form.Check
+
+                            type="radio"
+
+                            id="momo"
+
+                            name="payment"
+
+                            checked={
+                                method === "momo"
+                            }
+
+                            disabled={
+                                loading
+                            }
+
+                            onChange={() =>
+                                setMethod(
+                                    "momo"
+                                )
+                            }
+
+                            label={
+
+                                <div className="d-flex justify-content-between align-items-center w-100">
+
+                                    <div>
+
+                                        <h6 className="mb-1">
+                                            📱 MoMo
+                                        </h6>
+
+                                        <small className="text-muted">
+                                            Chưa triển khai.
+                                        </small>
+
+                                    </div>
+
+                                    <span className="badge bg-warning text-dark">
+                                        Soon
+                                    </span>
+
+                                </div>
+                            }
+
+                        />
+
+                    </div>
+
+                </Form>
+
+            </Modal.Body>
+
+
+            <Modal.Footer>
+
+                <Button
+                    variant="secondary"
+                    disabled={
+                        loading
+                    }
+                    onClick={
+                        onClose
+                    }
+                >
+                    Hủy
+                </Button>
+
+
+                <Button
+                    variant="success"
+                    disabled={
+                        loading
+                    }
+                    onClick={
+                        handleContinue
+                    }
+                >
+
+                    {loading ? (
+
+                        <>
+                            <span
+                                className="spinner-border spinner-border-sm me-2"
+                                role="status"
+                            />
+
+                            Đang xử lý...
+                        </>
+
+                    ) : (
+
+                        "Tiếp tục"
+                    )}
+
+                </Button>
+
+            </Modal.Footer>
+
+        </Modal>
+    );
 }
+
 
 export default PaymentModal;

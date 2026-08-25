@@ -1,670 +1,1432 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import {
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 
-import useAuth from "../../hooks/useAuth";
-import FieldDetail from "./FieldDetail";
+import {
+    Link,
+    useNavigate,
+} from "react-router-dom";
 
-import formatCurrency from "../../utils/formatCurrency";
+import useAuth
+    from "../../hooks/useAuth";
+
+import FieldDetail
+    from "./FieldDetail";
+
+import {
+    getFieldsApi,
+} from "../../api/fieldApi";
+
+import apiClient
+    from "../../api/apiClient";
+
+import formatCurrency
+    from "../../utils/formatCurrency";
 
 import "../../assets/styles/home.css";
-const featuredFields = [
-  {
-    _id: "1",
-    fieldName: "Sân bóng đá A",
-    fieldType: "Bóng đá",
-    subType: "Sân 7 người",
-    location: "Khu A",
-    pricePerHour: 250000,
-    rating: 4.9,
-    image:
-      "https://images.unsplash.com/photo-1547347298-4074fc3086f0?w=900",
-    description: "Sân cỏ nhân tạo đạt chuẩn FIFA.",
-    status: "active",
-  },
 
-  {
-    _id: "2",
-    fieldName: "Sân bóng đá B",
-    fieldType: "Bóng đá",
-    subType: "Sân 5 người",
-    location: "Khu A",
-    pricePerHour: 180000,
-    rating: 4.8,
-    image:
-      "https://images.unsplash.com/photo-1517466787929-bc90951d0974?w=900",
-    description: "Có đèn LED ban đêm.",
-    status: "active",
-  },
-
-  {
-    _id: "3",
-    fieldName: "Sân cầu lông 01",
-    fieldType: "Cầu lông",
-    subType: "2 sân tiêu chuẩn",
-    location: "Khu B",
-    pricePerHour: 80000,
-    rating: 4.9,
-    image:
-      "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=900",
-    description: "Sàn PVC chống trượt.",
-    status: "active",
-  },
-
-  {
-    _id: "4",
-    fieldName: "Sân Pickleball 01",
-    fieldType: "Pickleball",
-    subType: "Ngoài trời",
-    location: "Khu C",
-    pricePerHour: 120000,
-    rating: 4.8,
-    image:
-      "https://images.unsplash.com/photo-1666811094885-9eb97d0dbb75?w=900",
-    description: "Mặt sân Acrylic đạt chuẩn.",
-    status: "active",
-  },
-
-  {
-    _id: "5",
-    fieldName: "Sân bóng chuyền 01",
-    fieldType: "Bóng chuyền",
-    subType: "Trong nhà",
-    location: "Khu D",
-    pricePerHour: 150000,
-    rating: 4.7,
-    image:
-      "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=900",
-    description: "Sân thi đấu tiêu chuẩn.",
-    status: "active",
-  },
-];
-
-const promotions = [
-  {
-    id: 1,
-    title: "Đặt sớm - Giảm 20%",
-    description: "Đặt sân trước 3 ngày để nhận ưu đãi.",
-    icon: "bi-calendar2-check",
-    color: "success",
-  },
-  {
-    id: 2,
-    title: "Khung giờ vàng",
-    description: "Giảm giá khi đặt sân từ 08:00 - 10:00.",
-    icon: "bi-clock-fill",
-    color: "warning",
-  },
-  {
-    id: 3,
-    title: "Khách hàng thân thiết",
-    description: "Tích điểm sau mỗi lần đặt sân.",
-    icon: "bi-stars",
-    color: "primary",
-  },
-];
 
 function Home() {
-  const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
-  const [selectedField, setSelectedField] = useState(null);
 
-  const today = new Date().toLocaleDateString("vi-VN", {
-    weekday: "long",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+    const navigate =
+        useNavigate();
 
-  const handleBooking = (field) => {
 
-  if (!isAuthenticated) {
+    const {
+        isAuthenticated,
+        user,
+    } = useAuth();
 
-    alert("Vui lòng đăng nhập để đặt sân!");
 
-    navigate("/login");
+    // ==========================================================
+    // STATE
+    // ==========================================================
 
-    return;
+    const [
+        fields,
+        setFields,
+    ] = useState([]);
 
-  }
 
+    const [
+        bookings,
+        setBookings,
+    ] = useState([]);
 
-  navigate("/booking", {
-  state: {
-    field,
-  },
-});
 
-};
+    const [
+        selectedField,
+        setSelectedField,
+    ] = useState(null);
 
-  return (
-    <div className="container-fluid">
 
-      {/* ================= Hero ================= */}
+    const [
+        loading,
+        setLoading,
+    ] = useState(true);
 
-      {!isAuthenticated ? (
 
-        <div className="hero-banner">
+    const [
+        error,
+        setError,
+    ] = useState("");
 
-          <div className="hero-left">
 
-            <h2>
-              ⚽ Đặt sân chưa bao giờ dễ đến thế
-            </h2>
+    const [
+        searchText,
+        setSearchText,
+    ] = useState("");
 
-            <p>
-              Tìm sân • Đặt lịch • Thanh toán nhanh chóng chỉ trong vài phút.
-            </p>
 
-            <div className="mt-4">
+    // ==========================================================
+    // DATE KEY
+    // ==========================================================
 
-              <Link
-                to="/fields"
-                className="btn btn-light btn-lg me-3"
-              >
-                Khám phá sân
-              </Link>
+    const getDateKey = (
+        value
+    ) => {
 
-              <Link
-                to="/login"
-                className="btn btn-outline-light btn-lg"
-              >
-                Đăng nhập
-              </Link>
+        if (!value) {
+            return "";
+        }
 
-            </div>
 
-          </div>
+        // Backend trả trực tiếp YYYY-MM-DD
 
-          <div className="hero-right">
+        if (
+            typeof value === "string" &&
+            /^\d{4}-\d{2}-\d{2}$/.test(
+                value
+            )
+        ) {
 
-            <img
-              src="https://images.unsplash.com/photo-1517466787929-bc90951d0974?w=900"
-              alt="Sport"
-            />
+            return value;
+        }
 
-          </div>
 
-        </div>
+        const date =
+            new Date(
+                value
+            );
 
-      ) : (
 
-        <div className="welcome-banner">
+        if (
+            Number.isNaN(
+                date.getTime()
+            )
+        ) {
 
-          <div className="welcome-left">
+            return "";
+        }
 
-            <div className="avatar-circle">
 
-              {user?.fullName?.charAt(0)}
+        const year =
+            date.getFullYear();
 
-            </div>
 
-            <div className="welcome-info">
+        const month =
+            String(
+                date.getMonth() + 1
+            ).padStart(
+                2,
+                "0"
+            );
 
-              <p className="welcome-date">
 
-                {today}
+        const day =
+            String(
+                date.getDate()
+            ).padStart(
+                2,
+                "0"
+            );
 
-              </p>
 
-              <h2>
+        return `${year}-${month}-${day}`;
+    };
 
-                Xin chào, {user?.fullName}
 
-              </h2>
+    // ==========================================================
+    // TODAY KEY
+    // ==========================================================
 
-              <span>
+    const getTodayKey = () => {
 
-                Chúc bạn có một ngày tuyệt vời!
+        const date =
+            new Date();
 
-              </span>
 
-            </div>
+        const year =
+            date.getFullYear();
 
-          </div>
 
-          <button className="notify-btn">
+        const month =
+            String(
+                date.getMonth() + 1
+            ).padStart(
+                2,
+                "0"
+            );
 
-            <i className="bi bi-bell-fill"></i>
 
-          </button>
+        const day =
+            String(
+                date.getDate()
+            ).padStart(
+                2,
+                "0"
+            );
 
-        </div>
 
-      )}
+        return `${year}-${month}-${day}`;
+    };
 
-      {/* ================= Search ================= */}
 
-      <div className="search-panel">
+    // ==========================================================
+    // TOMORROW KEY
+    // ==========================================================
 
-        <div className="search-input">
+    const getTomorrowKey = () => {
 
-          <i className="bi bi-search"></i>
+        const date =
+            new Date();
 
-          <input
-            type="text"
-            placeholder="Tìm kiếm sân, địa điểm..."
-          />
 
-        </div>
+        date.setHours(
+            0,
+            0,
+            0,
+            0
+        );
 
-        <div className="shortcut-menu">
 
-          <div className="shortcut-item">
+        date.setDate(
+            date.getDate() + 1
+        );
 
-            <i className="bi bi-map-fill"></i>
 
-            <span>Bản đồ</span>
+        const year =
+            date.getFullYear();
 
-          </div>
 
-          <div className="shortcut-item">
+        const month =
+            String(
+                date.getMonth() + 1
+            ).padStart(
+                2,
+                "0"
+            );
 
-            <i className="bi bi-calendar-check-fill"></i>
 
-            <span>Đã đặt</span>
+        const day =
+            String(
+                date.getDate()
+            ).padStart(
+                2,
+                "0"
+            );
 
-          </div>
 
-          <div className="shortcut-item">
+        return `${year}-${month}-${day}`;
+    };
 
-            <i className="bi bi-heart-fill"></i>
 
-            <span>Yêu thích</span>
+    // ==========================================================
+    // LOAD DATA
+    // ==========================================================
 
-          </div>
+    useEffect(() => {
 
-        </div>
+        let mounted = true;
 
-      </div>
 
-      {/* ================= Statistics ================= */}
+        const loadData =
+            async () => {
 
-      <div className="row g-4 mb-5">
+                try {
 
-        <div className="col-lg-4">
+                    setLoading(true);
+                    setError("");
 
-          <div className="stat-card">
 
-            <i className="bi bi-grid-fill"></i>
+                    // ==================================================
+                    // FIELDS
+                    // ==================================================
 
-            <h3>7</h3>
+                    const fieldsRequest =
+                        getFieldsApi();
 
-            <p>Sân đang hoạt động</p>
 
-          </div>
+                    // ==================================================
+                    // BOOKINGS
+                    // ==================================================
 
-        </div>
+                    const bookingsRequest =
+                        isAuthenticated
+                            ? apiClient(
+                                "/bookings/my",
+                                {
+                                    method:
+                                        "GET",
+                                }
+                            )
+                            : Promise.resolve(
+                                null
+                            );
 
-        <div className="col-lg-4">
 
-          <div className="stat-card">
+                    const [
+                        fieldsResponse,
+                        bookingsResponse,
+                    ] = await Promise.all([
+                        fieldsRequest,
+                        bookingsRequest,
+                    ]);
 
-            <i className="bi bi-calendar-check-fill"></i>
 
-            <h3>10</h3>
+                    if (!mounted) {
+                        return;
+                    }
 
-            <p>Lượt đặt hôm nay</p>
 
-          </div>
+                    // ==================================================
+                    // FIELDS DATA
+                    // ==================================================
 
-        </div>
+                    const fieldData =
+                        Array.isArray(
+                            fieldsResponse
+                        )
+                            ? fieldsResponse
+                            : Array.isArray(
+                                fieldsResponse?.data
+                            )
+                                ? fieldsResponse.data
+                                : [];
 
-        <div className="col-lg-4">
 
-          <div className="stat-card">
+                    setFields(
+                        fieldData
+                    );
 
-            <i className="bi bi-star-fill"></i>
 
-            <h3>4.9</h3>
+                    // ==================================================
+                    // BOOKINGS DATA
+                    // ==================================================
 
-            <p>Đánh giá trung bình</p>
+                    if (
+                        isAuthenticated &&
+                        bookingsResponse
+                    ) {
 
-          </div>
+                        const bookingData =
+                            Array.isArray(
+                                bookingsResponse?.data
+                            )
+                                ? bookingsResponse.data
+                                : Array.isArray(
+                                    bookingsResponse
+                                )
+                                    ? bookingsResponse
+                                    : [];
 
-        </div>
 
-      </div>
-          {/* ================= Featured Fields ================= */}
+                        setBookings(
+                            bookingData
+                        );
 
-      <div className="d-flex justify-content-between align-items-center mb-4">
+                    } else {
 
-        <h3 className="fw-bold">
-          🔥 Sân nổi bật
-        </h3>
+                        setBookings([]);
 
-        <Link
-          to="/fields"
-          className="btn btn-success"
-        >
-          Xem tất cả
-        </Link>
+                    }
 
-      </div>
+                } catch (err) {
 
-      <div className="row">
+                    console.error(
+                        "Load home data error:",
+                        err
+                    );
 
-        {featuredFields.map((field) => (
 
-          <div
-            className="col-lg-4 col-md-6 mb-4"
-            key={field._id}
-          >
+                    if (!mounted) {
+                        return;
+                    }
 
-            <div
-              className="field-card"
-              style={{ cursor: "pointer" }}
-              onClick={() => setSelectedField(field)}
-            >
 
-              <img
-                src={field.image}
-                alt={field.fieldName}
-              />
+                    setError(
+                        err?.data?.message ||
+                        err?.message ||
+                        "Không thể tải dữ liệu trang chủ."
+                    );
 
-              <div className="p-3">
 
-                <h5>{field.fieldName}</h5>
-                    <p className="text-muted mb-1">
-                      {field.fieldType}
-                    </p>
-                <p className="text-muted mb-2">
+                    setFields([]);
+                    setBookings([]);
 
-                  <i className="bi bi-geo-alt-fill me-2"></i>
+                } finally {
 
-                  {field.location}
+                    if (mounted) {
 
+                        setLoading(
+                            false
+                        );
+
+                    }
+                }
+            };
+
+
+        loadData();
+
+
+        return () => {
+
+            mounted = false;
+
+        };
+
+    }, [
+        isAuthenticated,
+    ]);
+
+
+    // ==========================================================
+    // TODAY DISPLAY
+    // ==========================================================
+
+    const today =
+        new Date().toLocaleDateString(
+            "vi-VN",
+            {
+                weekday:
+                    "long",
+
+                day:
+                    "2-digit",
+
+                month:
+                    "2-digit",
+
+                year:
+                    "numeric",
+            }
+        );
+
+
+    // ==========================================================
+    // DATE KEYS
+    // ==========================================================
+
+    const todayKey =
+        getTodayKey();
+
+
+    const tomorrowKey =
+        getTomorrowKey();
+
+
+    // ==========================================================
+    // ACTIVE FIELDS
+    // ==========================================================
+
+    const activeFields =
+        useMemo(() => {
+
+            return fields.filter(
+                field =>
+                    field?.status ===
+                    "active"
+            );
+
+        }, [
+            fields,
+        ]);
+
+
+    // ==========================================================
+    // SEARCH
+    // ==========================================================
+
+    const filteredFields =
+        useMemo(() => {
+
+            const keyword =
+                searchText
+                    .trim()
+                    .toLowerCase();
+
+
+            if (!keyword) {
+
+                return activeFields;
+            }
+
+
+            return activeFields.filter(
+                field => {
+
+                    const name =
+                        field?.fieldName
+                            ?.toLowerCase() ||
+                        "";
+
+
+                    const location =
+                        field?.location
+                            ?.toLowerCase() ||
+                        "";
+
+
+                    const type =
+                        field?.fieldTypeId?.name
+                            ?.toLowerCase() ||
+                        "";
+
+
+                    const description =
+                        field?.description
+                            ?.toLowerCase() ||
+                        "";
+
+
+                    return (
+                        name.includes(
+                            keyword
+                        ) ||
+                        location.includes(
+                            keyword
+                        ) ||
+                        type.includes(
+                            keyword
+                        ) ||
+                        description.includes(
+                            keyword
+                        )
+                    );
+                }
+            );
+
+        }, [
+            activeFields,
+            searchText,
+        ]);
+
+
+    // ==========================================================
+    // FEATURED FIELDS
+    // ==========================================================
+
+    const featuredFields =
+        useMemo(() => {
+
+            return [
+                ...filteredFields,
+            ]
+                .sort(
+                    (
+                        a,
+                        b
+                    ) =>
+                        Number(
+                            b?.rating ||
+                            0
+                        ) -
+                        Number(
+                            a?.rating ||
+                            0
+                        )
+                )
+                .slice(
+                    0,
+                    6
+                );
+
+        }, [
+            filteredFields,
+        ]);
+
+
+    // ==========================================================
+    // TOTAL ACTIVE FIELDS
+    // ==========================================================
+
+    const totalActiveFields =
+        activeFields.length;
+
+
+    // ==========================================================
+    // BOOKINGS TODAY
+    // ==========================================================
+
+    const bookingsToday =
+        useMemo(() => {
+
+            if (
+                !isAuthenticated
+            ) {
+
+                return 0;
+            }
+
+
+            return bookings.filter(
+                booking => {
+
+                    const status =
+                        String(
+                            booking?.status ||
+                            ""
+                        ).toLowerCase();
+
+
+                    // Không tính booking đã hủy
+
+                    if (
+                        status ===
+                        "cancelled"
+                    ) {
+
+                        return false;
+                    }
+
+
+                    const bookingDate =
+                        getDateKey(
+                            booking?.bookingDate
+                        );
+
+
+                    return (
+                        bookingDate ===
+                        todayKey
+                    );
+                }
+            ).length;
+
+        }, [
+            bookings,
+            isAuthenticated,
+            todayKey,
+        ]);
+
+
+    // ==========================================================
+    // UPCOMING BOOKINGS
+    //
+    // Chỉ tính từ ngày mai trở đi
+    // Không tính cancelled
+    // ==========================================================
+
+    const upcomingBookings =
+        useMemo(() => {
+
+            if (
+                !isAuthenticated
+            ) {
+
+                return 0;
+            }
+
+
+            return bookings.filter(
+                booking => {
+
+                    const status =
+                        String(
+                            booking?.status ||
+                            ""
+                        ).toLowerCase();
+
+
+                    if (
+                        status ===
+                        "cancelled"
+                    ) {
+
+                        return false;
+                    }
+
+
+                    const bookingDate =
+                        getDateKey(
+                            booking?.bookingDate
+                        );
+
+
+                    if (
+                        !bookingDate
+                    ) {
+
+                        return false;
+                    }
+
+
+                    return (
+                        bookingDate >=
+                        tomorrowKey
+                    );
+                }
+            ).length;
+
+        }, [
+            bookings,
+            isAuthenticated,
+            tomorrowKey,
+        ]);
+
+
+    // ==========================================================
+    // FIELD IMAGE
+    // ==========================================================
+
+    const getFieldImage =
+        (
+            field
+        ) => {
+
+            if (
+                !field?.image
+            ) {
+
+                return "";
+            }
+
+
+            if (
+                field.image.startsWith(
+                    "http://"
+                ) ||
+                field.image.startsWith(
+                    "https://"
+                )
+            ) {
+
+                return field.image;
+            }
+
+
+            return (
+                `http://localhost:5000${field.image}`
+            );
+        };
+
+
+    // ==========================================================
+    // BANNER FIELD
+    // ==========================================================
+
+    const bannerField =
+        activeFields.find(
+            field =>
+                field?.image
+        );
+
+
+    const bannerImage =
+        getFieldImage(
+            bannerField
+        );
+
+
+    // ==========================================================
+    // BOOKING
+    // ==========================================================
+
+    const handleBooking =
+        (
+            field
+        ) => {
+
+            if (
+                !isAuthenticated
+            ) {
+
+                alert(
+                    "Vui lòng đăng nhập để đặt sân!"
+                );
+
+
+                navigate(
+                    "/login"
+                );
+
+
+                return;
+            }
+
+
+            navigate(
+                "/booking",
+                {
+                    state: {
+                        field,
+                    },
+                }
+            );
+        };
+
+
+    // ==========================================================
+    // LOADING
+    // ==========================================================
+
+    if (loading) {
+
+        return (
+
+            <div className="container-fluid py-5 text-center">
+
+                <div
+                    className="spinner-border text-success"
+                    role="status"
+                />
+
+                <p className="text-muted mt-3">
+                    Đang tải dữ liệu trang chủ...
                 </p>
 
-                <h4 className="text-success">
-
-                  {formatCurrency(field.pricePerHour)}
-
-                </h4>
-
-                <button
-                  className="btn btn-success w-100 mt-3"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleBooking(field);
-                  }}
-                >
-                  Đặt sân
-                </button>
-
-              </div>
-
             </div>
+        );
+    }
 
-          </div>
 
-        ))}
+    // ==========================================================
+    // RENDER
+    // ==========================================================
 
-      </div>
+    return (
 
-      {/* ================= Promotion ================= */}
+        <div className="container-fluid">
 
-      <div className="mt-5">
+            {/* ==================================================
+                WELCOME
+            ================================================== */}
 
-        <h3 className="fw-bold mb-4">
+            {!isAuthenticated ? (
 
-          🎁 Ưu đãi dành cho bạn
+                <div className="hero-banner">
 
-        </h3>
+                    <div className="hero-left">
 
-        <div className="row g-4">
+                        <h2>
+                            ⚽ Đặt sân chưa bao giờ
+                            dễ đến thế
+                        </h2>
 
-          {promotions.map((item) => (
 
-            <div
-              className="col-lg-4"
-              key={item.id}
-            >
+                        <p>
+                            Tìm sân • Đặt lịch •
+                            Thanh toán nhanh chóng.
+                        </p>
 
-              <div className="promotion-card">
 
-                <div className={`promotion-icon bg-${item.color}`}>
+                        <div className="mt-4">
 
-                  <i className={`bi ${item.icon}`}></i>
+                            <Link
+                                to="/fields"
+                                className="btn btn-light btn-lg me-3"
+                            >
+                                Khám phá sân
+                            </Link>
+
+
+                            <Link
+                                to="/login"
+                                className="btn btn-outline-light btn-lg"
+                            >
+                                Đăng nhập
+                            </Link>
+
+                        </div>
+
+                    </div>
+
+
+                    {/* ==================================================
+                        BANNER IMAGE
+                    ================================================== */}
+
+                    <div className="hero-right">
+
+                        {
+                            bannerImage ? (
+
+                                <img
+                                    src={
+                                        bannerImage
+                                    }
+                                    alt={
+                                        bannerField?.fieldName ||
+                                        "Sân thể thao"
+                                    }
+                                    onError={(
+                                        e
+                                    ) => {
+
+                                        e.currentTarget.style.display =
+                                            "none";
+
+
+                                        const placeholder =
+                                            e.currentTarget
+                                                .parentElement
+                                                ?.querySelector(
+                                                    ".hero-image-placeholder"
+                                                );
+
+
+                                        if (
+                                            placeholder
+                                        ) {
+
+                                            placeholder.style.display =
+                                                "flex";
+                                        }
+                                    }}
+                                />
+
+                            ) : null
+                        }
+
+
+                        <div
+                            className="hero-image-placeholder"
+                            style={{
+                                display:
+                                    bannerImage
+                                        ? "none"
+                                        : "flex",
+                            }}
+                        >
+
+                            <i className="bi bi-trophy-fill"></i>
+
+
+                            <span>
+                                Sport Management
+                            </span>
+
+                        </div>
+
+                    </div>
 
                 </div>
 
-                <div>
+            ) : (
 
-                  <h5>{item.title}</h5>
+                <div className="welcome-banner">
 
-                  <p>{item.description}</p>
+                    <div className="welcome-left">
+
+                        <div className="avatar-circle">
+
+                            {
+                                user?.fullName
+                                    ?.charAt(0)
+                                    ?.toUpperCase() ||
+                                "U"
+                            }
+
+                        </div>
+
+
+                        <div className="welcome-info">
+
+                            <p className="welcome-date">
+                                {today}
+                            </p>
+
+
+                            <h2>
+
+                                Xin chào,{" "}
+
+                                {
+                                    user?.fullName ||
+                                    "bạn"
+                                }
+
+                            </h2>
+
+
+                            <span>
+                                Chúc bạn có một ngày tuyệt vời!
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            )}
+
+
+            {/* ==================================================
+                SEARCH
+            ================================================== */}
+
+            <div className="search-panel">
+
+                <div className="search-input">
+
+                    <i className="bi bi-search"></i>
+
+
+                    <input
+                        type="text"
+                        value={
+                            searchText
+                        }
+                        onChange={
+                            e =>
+                                setSearchText(
+                                    e.target.value
+                                )
+                        }
+                        placeholder="Tìm kiếm sân, địa điểm..."
+                    />
 
                 </div>
 
-              </div>
+
+                <div className="shortcut-menu">
+
+                    <div
+                        className="shortcut-item"
+                        onClick={() =>
+                            alert(
+                                "Tính năng bản đồ đang phát triển."
+                            )
+                        }
+                    >
+
+                        <i className="bi bi-map-fill"></i>
+
+                        <span>
+                            Bản đồ
+                        </span>
+
+                    </div>
+
+
+                    <div
+                        className="shortcut-item"
+                        onClick={() =>
+                            navigate(
+                                isAuthenticated
+                                    ? "/booking-history"
+                                    : "/login"
+                            )
+                        }
+                    >
+
+                        <i className="bi bi-calendar-check-fill"></i>
+
+                        <span>
+                            Đã đặt
+                        </span>
+
+                    </div>
+
+
+                    <div
+                        className="shortcut-item"
+                        onClick={() =>
+                            alert(
+                                "Tính năng yêu thích đang phát triển."
+                            )
+                        }
+                    >
+
+                        <i className="bi bi-heart-fill"></i>
+
+                        <span>
+                            Yêu thích
+                        </span>
+
+                    </div>
+
+                </div>
 
             </div>
 
-          ))}
+
+            {/* ==================================================
+                ERROR
+            ================================================== */}
+
+            {
+                error && (
+
+                    <div className="alert alert-danger mt-4">
+
+                        <i className="bi bi-exclamation-triangle-fill me-2"></i>
+
+                        {error}
+
+
+                        <button
+                            type="button"
+                            className="btn btn-outline-danger btn-sm ms-3"
+                            onClick={() =>
+                                window.location.reload()
+                            }
+                        >
+                            Thử lại
+                        </button>
+
+                    </div>
+                )
+            }
+
+
+            {/* ==================================================
+                DATA
+            ================================================== */}
+
+            {
+                !error && (
+
+                    <>
+
+                        {/* ==================================================
+                            STATISTICS
+                        ================================================== */}
+
+                        <div className="row g-4 mb-5">
+
+                            {/* ==============================================
+                                ACTIVE FIELDS
+                            ============================================== */}
+
+                            <div className="col-lg-4">
+
+                                <div className="stat-card">
+
+                                    <i className="bi bi-grid-fill"></i>
+
+
+                                    <h3>
+                                        {
+                                            totalActiveFields
+                                        }
+                                    </h3>
+
+
+                                    <p>
+                                        Sân đang hoạt động
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+
+                            {/* ==============================================
+                                TODAY BOOKINGS
+                            ============================================== */}
+
+                            <div className="col-lg-4">
+
+                                <div className="stat-card">
+
+                                    <i className="bi bi-calendar-check-fill"></i>
+
+
+                                    <h3>
+                                        {
+                                            isAuthenticated
+                                                ? bookingsToday
+                                                : "—"
+                                        }
+                                    </h3>
+
+
+                                    <p>
+                                        Lượt đặt hôm nay
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+
+                            {/* ==============================================
+                                UPCOMING BOOKINGS
+                            ============================================== */}
+
+                            <div className="col-lg-4">
+
+                                <div className="stat-card">
+
+                                    <i className="bi bi-clock-history"></i>
+
+
+                                    <h3>
+                                        {
+                                            isAuthenticated
+                                                ? upcomingBookings
+                                                : "—"
+                                        }
+                                    </h3>
+
+
+                                    <p>
+                                        Lịch đặt từ ngày mai
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* ==================================================
+                            FIELD HEADER
+                        ================================================== */}
+
+                        <div className="d-flex justify-content-between align-items-center mb-4">
+
+                            <h3 className="fw-bold">
+                                🏟️ Sân đang hoạt động
+                            </h3>
+
+
+                            <Link
+                                to="/fields"
+                                className="btn btn-success"
+                            >
+                                Xem tất cả
+                            </Link>
+
+                        </div>
+
+
+                        {/* ==================================================
+                            FIELD LIST
+                        ================================================== */}
+
+                        {
+                            featuredFields.length === 0 ? (
+
+                                <div className="text-center py-5">
+
+                                    <i
+                                        className="bi bi-building-x"
+                                        style={{
+                                            fontSize:
+                                                "45px",
+
+                                            color:
+                                                "#adb5bd",
+                                        }}
+                                    />
+
+
+                                    <h5 className="mt-3">
+                                        Không tìm thấy sân
+                                    </h5>
+
+
+                                    <p className="text-muted">
+                                        Hiện chưa có sân phù hợp.
+                                    </p>
+
+                                </div>
+
+                            ) : (
+
+                                <div className="row">
+
+                                    {
+                                        featuredFields.map(
+                                            field => (
+
+                                                <div
+                                                    className="col-lg-4 col-md-6 mb-4"
+                                                    key={
+                                                        field._id
+                                                    }
+                                                >
+
+                                                    <div
+                                                        className="field-card"
+                                                        onClick={() =>
+                                                            setSelectedField(
+                                                                field
+                                                            )
+                                                        }
+                                                    >
+
+                                                        <img
+                                                            src={
+                                                                getFieldImage(
+                                                                    field
+                                                                )
+                                                            }
+                                                            alt={
+                                                                field.fieldName ||
+                                                                "Sân thể thao"
+                                                            }
+                                                            onError={(
+                                                                e
+                                                            ) => {
+
+                                                                e.currentTarget.style.display =
+                                                                    "none";
+
+                                                            }}
+                                                        />
+
+
+                                                        <div className="p-3">
+
+                                                            <h5>
+                                                                {
+                                                                    field.fieldName
+                                                                }
+                                                            </h5>
+
+
+                                                            <p className="text-muted mb-1">
+
+                                                                {
+                                                                    field
+                                                                        ?.fieldTypeId
+                                                                        ?.name ||
+                                                                    "Chưa phân loại"
+                                                                }
+
+                                                            </p>
+
+
+                                                            <p className="text-muted">
+
+                                                                <i className="bi bi-geo-alt-fill me-2"></i>
+
+                                                                {
+                                                                    field.location ||
+                                                                    "Chưa cập nhật"
+                                                                }
+
+                                                            </p>
+
+
+                                                            {
+                                                                Number(
+                                                                    field.rating
+                                                                ) > 0 && (
+
+                                                                    <div className="text-warning mb-2">
+
+                                                                        ⭐{" "}
+
+                                                                        {
+                                                                            Number(
+                                                                                field.rating
+                                                                            ).toFixed(
+                                                                                1
+                                                                            )
+                                                                        }
+
+                                                                    </div>
+                                                                )
+                                                            }
+
+
+                                                            <h4 className="text-success">
+
+                                                                {
+                                                                    formatCurrency(
+                                                                        field.pricePerHour ||
+                                                                        0
+                                                                    )
+                                                                }
+
+
+                                                                <small className="text-muted fs-6">
+
+                                                                    {" "}
+                                                                    / giờ
+
+                                                                </small>
+
+                                                            </h4>
+
+
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-success w-100 mt-3"
+                                                                onClick={(
+                                                                    e
+                                                                ) => {
+
+                                                                    e.stopPropagation();
+
+
+                                                                    handleBooking(
+                                                                        field
+                                                                    );
+
+                                                                }}
+                                                            >
+
+                                                                Đặt sân
+
+                                                            </button>
+
+                                                        </div>
+
+                                                    </div>
+
+                                                </div>
+                                            )
+                                        )
+                                    }
+
+                                </div>
+                            )
+                        }
+
+                    </>
+                )
+            }
+
+
+            {/* ==================================================
+                DETAIL
+            ================================================== */}
+
+            {
+                selectedField && (
+
+                    <FieldDetail
+                        field={
+                            selectedField
+                        }
+
+                        onClose={() =>
+                            setSelectedField(
+                                null
+                            )
+                        }
+
+                        onBooking={() =>
+                            handleBooking(
+                                selectedField
+                            )
+                        }
+                    />
+                )
+            }
 
         </div>
-
-      </div>
-
-      {/* ================= Review ================= */}
-
-      <div className="mt-5">
-
-        <h3 className="fw-bold mb-4">
-
-          ⭐ Đánh giá khách hàng
-
-        </h3>
-
-        <div className="row g-4">
-
-          <div className="col-lg-4">
-
-            <div className="review-card">
-
-              <div className="mb-3 text-warning">
-
-                ⭐⭐⭐⭐⭐
-
-              </div>
-
-              <p>
-
-                "Đặt sân rất nhanh, giao diện đẹp và dễ sử dụng."
-
-              </p>
-
-              <strong>
-
-                Nguyễn Văn A
-
-              </strong>
-
-            </div>
-
-          </div>
-
-          <div className="col-lg-4">
-
-            <div className="review-card">
-
-              <div className="mb-3 text-warning">
-
-                ⭐⭐⭐⭐⭐
-
-              </div>
-
-              <p>
-
-                "Thanh toán nhanh, sân đúng như hình."
-
-              </p>
-
-              <strong>
-
-                Trần Văn B
-
-              </strong>
-
-            </div>
-
-          </div>
-
-          <div className="col-lg-4">
-
-            <div className="review-card">
-
-              <div className="mb-3 text-warning">
-
-                ⭐⭐⭐⭐⭐
-
-              </div>
-
-              <p>
-
-                "Đặt sân chỉ mất vài phút, rất tiện lợi."
-
-              </p>
-
-              <strong>
-
-                Lê Minh C
-
-              </strong>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-            {/* ================= Footer ================= */}
-      {selectedField && (
-        <FieldDetail
-            field={selectedField}
-            onClose={() => setSelectedField(null)}
-            onBooking={() => handleBooking(selectedField)}
-        />
-      )}
-      <footer className="footer mt-5">
-
-        <div className="row">
-
-          <div className="col-lg-4 mb-4">
-
-            <h4 className="fw-bold text-success">
-
-              <i className="bi bi-trophy-fill me-2"></i>
-
-              Sport Management
-
-            </h4>
-
-            <p className="text-muted mt-3">
-
-              Hệ thống hỗ trợ tìm kiếm, đặt sân và thanh toán trực tuyến
-              nhanh chóng, an toàn và tiện lợi.
-
-            </p>
-
-          </div>
-
-          <div className="col-lg-4 mb-4">
-
-            <h5 className="fw-bold">
-
-              Liên kết
-
-            </h5>
-
-            <ul className="list-unstyled mt-3">
-
-              <li className="mb-2">
-
-                <Link
-                  to="/"
-                  className="footer-link"
-                >
-                  Trang chủ
-                </Link>
-
-              </li>
-
-              <li className="mb-2">
-
-                <Link
-                  to="/fields"
-                  className="footer-link"
-                >
-                  Danh sách sân
-                </Link>
-
-              </li>
-
-              <li className="mb-2">
-
-                <Link
-                  to="/booking"
-                  className="footer-link"
-                >
-                  Đặt sân
-                </Link>
-
-              </li>
-
-            </ul>
-
-          </div>
-
-          <div className="col-lg-4 mb-4">
-
-            <h5 className="fw-bold">
-
-              Liên hệ
-
-            </h5>
-
-            <p className="mt-3 mb-2">
-
-              <i className="bi bi-telephone-fill me-2 text-success"></i>
-
-              0123 456 789
-
-            </p>
-
-            <p className="mb-2">
-
-              <i className="bi bi-envelope-fill me-2 text-success"></i>
-
-              sport@gmail.com
-
-            </p>
-
-            <p>
-
-              <i className="bi bi-geo-alt-fill me-2 text-success"></i>
-
-              Trà Vinh, Việt Nam
-
-            </p>
-
-          </div>
-
-        </div>
-
-        <hr />
-
-        <div className="text-center text-muted">
-
-          © 2026 Sport Management System. All rights reserved.
-
-        </div>
-
-      </footer>
-
-    </div>
-  );
+    );
 }
+
 
 export default Home;

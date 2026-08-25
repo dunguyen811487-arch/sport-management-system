@@ -1,34 +1,108 @@
-// src/services/fieldTypeService.js
+const API_BASE_URL = "http://localhost:5000/api";
 
-import API from "../config/api";
+// ==========================================
+// LẤY DANH SÁCH LOẠI SÂN
+// GET /api/field-types
+// ==========================================
 
-const fieldTypeService = {
+export const getFieldTypes = async () => {
+  const response = await fetch(
+    `${API_BASE_URL}/field-types`
+  );
 
-  // Danh sách loại sân
-  getAll() {
-    return API.get("/field-types");
-  },
+  if (!response.ok) {
+    throw new Error(
+      "Không thể lấy danh sách loại sân"
+    );
+  }
 
-  // Chi tiết loại sân
-  getById(id) {
-    return API.get(`/field-types/${id}`);
-  },
-
-  // Thêm loại sân
-  create(data) {
-    return API.post("/field-types", data);
-  },
-
-  // Cập nhật loại sân
-  update(id, data) {
-    return API.put(`/field-types/${id}`, data);
-  },
-
-  // Xóa loại sân
-  remove(id) {
-    return API.delete(`/field-types/${id}`);
-  },
-
+  return response.json();
 };
 
-export default fieldTypeService;
+
+// ==========================================
+// THÊM LOẠI SÂN
+// POST /api/field-types
+// ==========================================
+
+export const createFieldType = async (
+  fieldTypeData
+) => {
+  const response = await fetch(
+    `${API_BASE_URL}/field-types`,
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify(fieldTypeData),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      "Không thể tạo loại sân"
+    );
+  }
+
+  return response.json();
+};
+
+
+// ==========================================
+// CẬP NHẬT LOẠI SÂN
+// PUT /api/field-types/:id
+// ==========================================
+
+export const updateFieldType = async (
+  id,
+  fieldTypeData
+) => {
+  const response = await fetch(
+    `${API_BASE_URL}/field-types/${id}`,
+    {
+      method: "PUT",
+
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify(fieldTypeData),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      "Không thể cập nhật loại sân"
+    );
+  }
+
+  return response.json();
+};
+
+
+// ==========================================
+// XÓA LOẠI SÂN
+// DELETE /api/field-types/:id
+// ==========================================
+
+export const deleteFieldType = async (
+  id
+) => {
+  const response = await fetch(
+    `${API_BASE_URL}/field-types/${id}`,
+    {
+      method: "DELETE",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      "Không thể xóa loại sân"
+    );
+  }
+
+  return response.json();
+};
