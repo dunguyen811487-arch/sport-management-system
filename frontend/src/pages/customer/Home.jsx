@@ -19,6 +19,9 @@ import {
     getFieldsApi,
 } from "../../api/fieldApi";
 
+import apiClient
+    from "../../api/apiClient";
+
 import formatCurrency
     from "../../utils/formatCurrency";
 
@@ -48,6 +51,12 @@ function Home() {
 
 
     const [
+        bookings,
+        setBookings,
+    ] = useState([]);
+
+
+    const [
         selectedField,
         setSelectedField,
     ] = useState(null);
@@ -72,7 +81,160 @@ function Home() {
 
 
     // ==========================================================
-    // LOAD FIELDS
+    // DATE KEY
+    // ==========================================================
+
+    const getDateKey = (
+        value
+    ) => {
+
+        if (!value) {
+            return "";
+        }
+
+
+        // Backend trả trực tiếp YYYY-MM-DD
+
+        if (
+            typeof value === "string" &&
+            /^\d{4}-\d{2}-\d{2}$/.test(
+                value
+            )
+        ) {
+
+            return value;
+        }
+
+
+        const date =
+            new Date(
+                value
+            );
+
+
+        if (
+            Number.isNaN(
+                date.getTime()
+            )
+        ) {
+
+            return "";
+        }
+
+
+        const year =
+            date.getFullYear();
+
+
+        const month =
+            String(
+                date.getMonth() + 1
+            ).padStart(
+                2,
+                "0"
+            );
+
+
+        const day =
+            String(
+                date.getDate()
+            ).padStart(
+                2,
+                "0"
+            );
+
+
+        return `${year}-${month}-${day}`;
+    };
+
+
+    // ==========================================================
+    // TODAY KEY
+    // ==========================================================
+
+    const getTodayKey = () => {
+
+        const date =
+            new Date();
+
+
+        const year =
+            date.getFullYear();
+
+
+        const month =
+            String(
+                date.getMonth() + 1
+            ).padStart(
+                2,
+                "0"
+            );
+
+
+        const day =
+            String(
+                date.getDate()
+            ).padStart(
+                2,
+                "0"
+            );
+
+
+        return `${year}-${month}-${day}`;
+    };
+
+
+    // ==========================================================
+    // TOMORROW KEY
+    // ==========================================================
+
+    const getTomorrowKey = () => {
+
+        const date =
+            new Date();
+
+
+        date.setHours(
+            0,
+            0,
+            0,
+            0
+        );
+
+
+        date.setDate(
+            date.getDate() + 1
+        );
+
+
+        const year =
+            date.getFullYear();
+
+
+        const month =
+            String(
+                date.getMonth() + 1
+            ).padStart(
+                2,
+                "0"
+            );
+
+
+        const day =
+            String(
+                date.getDate()
+            ).padStart(
+                2,
+                "0"
+            );
+
+
+        return `${year}-${month}-${day}`;
+    };
+
+
+    // ==========================================================
+    // LOAD DATA
     // ==========================================================
 
     useEffect(() => {
@@ -80,59 +242,144 @@ function Home() {
         let mounted = true;
 
 
-        const loadFields = async () => {
+        const loadData =
+            async () => {
 
-            try {
+                try {
 
-                setLoading(true);
-                setError("");
-
-
-                const data =
-                    await getFieldsApi();
+                    setLoading(true);
+                    setError("");
 
 
-                if (!mounted) {
-                    return;
+                    // ==================================================
+                    // FIELDS
+                    // ==================================================
+
+                    const fieldsRequest =
+                        getFieldsApi();
+
+
+                    // ==================================================
+                    // BOOKINGS
+                    // ==================================================
+
+                    const bookingsRequest =
+                        isAuthenticated
+                            ? apiClient(
+                                "/bookings/my",
+                                {
+                                    method:
+                                        "GET",
+                                }
+                            )
+                            : Promise.resolve(
+                                null
+                            );
+
+
+                    const [
+                        fieldsResponse,
+                        bookingsResponse,
+                    ] = await Promise.all([
+                        fieldsRequest,
+                        bookingsRequest,
+                    ]);
+
+
+                    if (!mounted) {
+                        return;
+                    }
+
+
+                    // ==================================================
+                    // FIELDS DATA
+                    // ==================================================
+
+                    const fieldData =
+                        Array.isArray(
+                            fieldsResponse
+                        )
+                            ? fieldsResponse
+                            : Array.isArray(
+                                fieldsResponse?.data
+                            )
+                                ? fieldsResponse.data
+                                : [];
+
+
+                    setFields(
+                        fieldData
+                    );
+
+
+                    // ==================================================
+                    // BOOKINGS DATA
+                    // ==================================================
+
+                    if (
+                        isAuthenticated &&
+                        bookingsResponse
+                    ) {
+
+                        const bookingData =
+                            Array.isArray(
+                                bookingsResponse?.data
+                            )
+                                ? bookingsResponse.data
+                                : Array.isArray(
+                                    bookingsResponse
+                                )
+                                    ? bookingsResponse
+                                    : [];
+
+
+                        setBookings(
+                            bookingData
+                        );
+
+                    } else {
+
+                        setBookings([]);
+
+                    }
+
+                } catch (err) {
+
+                    console.error(
+                        "Load home data error:",
+                        err
+                    );
+
+
+                    if (!mounted) {
+                        return;
+                    }
+
+
+                    setError(
+                        err?.data?.message ||
+                        err?.message ||
+                        "Không thể tải dữ liệu trang chủ."
+                    );
+
+
+                    setFields([]);
+                    setBookings([]);
+
+                } finally {
+
+                    if (mounted) {
+
+                        setLoading(
+                            false
+                        );
+
+                    }
                 }
+            };
 
 
-                setFields(
-                    Array.isArray(data)
-                        ? data
-                        : []
-                );
-
-            } catch (err) {
-
-                console.error(
-                    "Load fields error:",
-                    err
-                );
-
-
-                if (!mounted) {
-                    return;
-                }
-
-
-                setError(
-                    err?.message ||
-                    "Không thể tải danh sách sân."
-                );
-
-            } finally {
-
-                if (mounted) {
-
-                    setLoading(false);
-
-                }
-            }
-        };
-
-
-        loadFields();
+        loadData();
 
 
         return () => {
@@ -141,11 +388,13 @@ function Home() {
 
         };
 
-    }, []);
+    }, [
+        isAuthenticated,
+    ]);
 
 
     // ==========================================================
-    // TODAY
+    // TODAY DISPLAY
     // ==========================================================
 
     const today =
@@ -165,6 +414,18 @@ function Home() {
                     "numeric",
             }
         );
+
+
+    // ==========================================================
+    // DATE KEYS
+    // ==========================================================
+
+    const todayKey =
+        getTodayKey();
+
+
+    const tomorrowKey =
+        getTomorrowKey();
 
 
     // ==========================================================
@@ -201,7 +462,6 @@ function Home() {
             if (!keyword) {
 
                 return activeFields;
-
             }
 
 
@@ -233,10 +493,18 @@ function Home() {
 
 
                     return (
-                        name.includes(keyword) ||
-                        location.includes(keyword) ||
-                        type.includes(keyword) ||
-                        description.includes(keyword)
+                        name.includes(
+                            keyword
+                        ) ||
+                        location.includes(
+                            keyword
+                        ) ||
+                        type.includes(
+                            keyword
+                        ) ||
+                        description.includes(
+                            keyword
+                        )
                     );
                 }
             );
@@ -248,7 +516,7 @@ function Home() {
 
 
     // ==========================================================
-    // FEATURED
+    // FEATURED FIELDS
     // ==========================================================
 
     const featuredFields =
@@ -282,99 +550,172 @@ function Home() {
 
 
     // ==========================================================
-    // STATISTICS
+    // TOTAL ACTIVE FIELDS
     // ==========================================================
 
     const totalActiveFields =
         activeFields.length;
 
 
-    const averageRating =
+    // ==========================================================
+    // BOOKINGS TODAY
+    // ==========================================================
+
+    const bookingsToday =
         useMemo(() => {
 
-            const rated =
-                activeFields.filter(
-                    field =>
-                        Number(
-                            field?.rating
-                        ) > 0
-                );
-
-
             if (
-                !rated.length
+                !isAuthenticated
             ) {
 
-                return "—";
-
+                return 0;
             }
 
 
-            const total =
-                rated.reduce(
-                    (
-                        sum,
-                        field
-                    ) =>
-                        sum +
-                        Number(
-                            field.rating
-                        ),
-                    0
-                );
+            return bookings.filter(
+                booking => {
+
+                    const status =
+                        String(
+                            booking?.status ||
+                            ""
+                        ).toLowerCase();
 
 
-            return (
-                total /
-                rated.length
-            ).toFixed(
-                1
-            );
+                    // Không tính booking đã hủy
+
+                    if (
+                        status ===
+                        "cancelled"
+                    ) {
+
+                        return false;
+                    }
+
+
+                    const bookingDate =
+                        getDateKey(
+                            booking?.bookingDate
+                        );
+
+
+                    return (
+                        bookingDate ===
+                        todayKey
+                    );
+                }
+            ).length;
 
         }, [
-            activeFields,
+            bookings,
+            isAuthenticated,
+            todayKey,
         ]);
 
 
     // ==========================================================
-    // IMAGE
+    // UPCOMING BOOKINGS
+    //
+    // Chỉ tính từ ngày mai trở đi
+    // Không tính cancelled
     // ==========================================================
 
-    const getFieldImage =
-        (field) => {
+    const upcomingBookings =
+        useMemo(() => {
 
             if (
-                field?.image
+                !isAuthenticated
             ) {
 
-                if (
-                    field.image.startsWith(
-                        "http://"
-                    ) ||
-                    field.image.startsWith(
-                        "https://"
-                    )
-                ) {
-
-                    return field.image;
-
-                }
-
-
-                return (
-                    `http://localhost:5000${field.image}`
-                );
+                return 0;
             }
 
 
-            return "";
+            return bookings.filter(
+                booking => {
 
+                    const status =
+                        String(
+                            booking?.status ||
+                            ""
+                        ).toLowerCase();
+
+
+                    if (
+                        status ===
+                        "cancelled"
+                    ) {
+
+                        return false;
+                    }
+
+
+                    const bookingDate =
+                        getDateKey(
+                            booking?.bookingDate
+                        );
+
+
+                    if (
+                        !bookingDate
+                    ) {
+
+                        return false;
+                    }
+
+
+                    return (
+                        bookingDate >=
+                        tomorrowKey
+                    );
+                }
+            ).length;
+
+        }, [
+            bookings,
+            isAuthenticated,
+            tomorrowKey,
+        ]);
+
+
+    // ==========================================================
+    // FIELD IMAGE
+    // ==========================================================
+
+    const getFieldImage =
+        (
+            field
+        ) => {
+
+            if (
+                !field?.image
+            ) {
+
+                return "";
+            }
+
+
+            if (
+                field.image.startsWith(
+                    "http://"
+                ) ||
+                field.image.startsWith(
+                    "https://"
+                )
+            ) {
+
+                return field.image;
+            }
+
+
+            return (
+                `http://localhost:5000${field.image}`
+            );
         };
 
 
     // ==========================================================
-    // BANNER IMAGE
-    // Ưu tiên ảnh sân đang hoạt động
+    // BANNER FIELD
     // ==========================================================
 
     const bannerField =
@@ -395,7 +736,9 @@ function Home() {
     // ==========================================================
 
     const handleBooking =
-        (field) => {
+        (
+            field
+        ) => {
 
             if (
                 !isAuthenticated
@@ -424,6 +767,30 @@ function Home() {
                 }
             );
         };
+
+
+    // ==========================================================
+    // LOADING
+    // ==========================================================
+
+    if (loading) {
+
+        return (
+
+            <div className="container-fluid py-5 text-center">
+
+                <div
+                    className="spinner-border text-success"
+                    role="status"
+                />
+
+                <p className="text-muted mt-3">
+                    Đang tải dữ liệu trang chủ...
+                </p>
+
+            </div>
+        );
+    }
 
 
     // ==========================================================
@@ -518,7 +885,6 @@ function Home() {
                                             placeholder.style.display =
                                                 "flex";
                                         }
-
                                     }}
                                 />
 
@@ -537,6 +903,7 @@ function Home() {
                         >
 
                             <i className="bi bi-trophy-fill"></i>
+
 
                             <span>
                                 Sport Management
@@ -586,8 +953,7 @@ function Home() {
 
 
                             <span>
-                                Chúc bạn có một ngày
-                                tuyệt vời!
+                                Chúc bạn có một ngày tuyệt vời!
                             </span>
 
                         </div>
@@ -689,38 +1055,13 @@ function Home() {
 
 
             {/* ==================================================
-                LOADING
-            ================================================== */}
-
-            {
-                loading && (
-
-                    <div className="text-center py-5">
-
-                        <div
-                            className="spinner-border text-success"
-                            role="status"
-                        />
-
-                        <p className="text-muted mt-3">
-                            Đang tải dữ liệu sân...
-                        </p>
-
-                    </div>
-
-                )
-            }
-
-
-            {/* ==================================================
                 ERROR
             ================================================== */}
 
             {
-                !loading &&
                 error && (
 
-                    <div className="alert alert-danger">
+                    <div className="alert alert-danger mt-4">
 
                         <i className="bi bi-exclamation-triangle-fill me-2"></i>
 
@@ -728,6 +1069,7 @@ function Home() {
 
 
                         <button
+                            type="button"
                             className="btn btn-outline-danger btn-sm ms-3"
                             onClick={() =>
                                 window.location.reload()
@@ -737,7 +1079,6 @@ function Home() {
                         </button>
 
                     </div>
-
                 )
             }
 
@@ -747,7 +1088,6 @@ function Home() {
             ================================================== */}
 
             {
-                !loading &&
                 !error && (
 
                     <>
@@ -757,6 +1097,10 @@ function Home() {
                         ================================================== */}
 
                         <div className="row g-4 mb-5">
+
+                            {/* ==============================================
+                                ACTIVE FIELDS
+                            ============================================== */}
 
                             <div className="col-lg-4">
 
@@ -781,6 +1125,10 @@ function Home() {
                             </div>
 
 
+                            {/* ==============================================
+                                TODAY BOOKINGS
+                            ============================================== */}
+
                             <div className="col-lg-4">
 
                                 <div className="stat-card">
@@ -789,7 +1137,11 @@ function Home() {
 
 
                                     <h3>
-                                        —
+                                        {
+                                            isAuthenticated
+                                                ? bookingsToday
+                                                : "—"
+                                        }
                                     </h3>
 
 
@@ -802,22 +1154,28 @@ function Home() {
                             </div>
 
 
+                            {/* ==============================================
+                                UPCOMING BOOKINGS
+                            ============================================== */}
+
                             <div className="col-lg-4">
 
                                 <div className="stat-card">
 
-                                    <i className="bi bi-star-fill"></i>
+                                    <i className="bi bi-clock-history"></i>
 
 
                                     <h3>
                                         {
-                                            averageRating
+                                            isAuthenticated
+                                                ? upcomingBookings
+                                                : "—"
                                         }
                                     </h3>
 
 
                                     <p>
-                                        Đánh giá trung bình
+                                        Lịch đặt từ ngày mai
                                     </p>
 
                                 </div>
@@ -849,12 +1207,11 @@ function Home() {
 
 
                         {/* ==================================================
-                            NO FIELD
+                            FIELD LIST
                         ================================================== */}
 
                         {
-                            featuredFields.length ===
-                            0 ? (
+                            featuredFields.length === 0 ? (
 
                                 <div className="text-center py-5">
 
@@ -882,10 +1239,6 @@ function Home() {
                                 </div>
 
                             ) : (
-
-                                /* ==================================================
-                                   FIELD LIST
-                                ================================================== */
 
                                 <div className="row">
 
@@ -916,7 +1269,8 @@ function Home() {
                                                                 )
                                                             }
                                                             alt={
-                                                                field.fieldName
+                                                                field.fieldName ||
+                                                                "Sân thể thao"
                                                             }
                                                             onError={(
                                                                 e
@@ -1030,7 +1384,6 @@ function Home() {
                                                     </div>
 
                                                 </div>
-
                                             )
                                         )
                                     }
@@ -1067,9 +1420,7 @@ function Home() {
                                 selectedField
                             )
                         }
-
                     />
-
                 )
             }
 

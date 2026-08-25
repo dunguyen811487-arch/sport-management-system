@@ -6,6 +6,9 @@ import {
 import apiClient
     from "../../api/apiClient";
 
+import * as XLSX
+    from "xlsx";
+
 
 function Report() {
 
@@ -46,6 +49,12 @@ function Report() {
 
 
     const [
+        exporting,
+        setExporting,
+    ] = useState(false);
+
+
+    const [
         error,
         setError,
     ] = useState("");
@@ -55,73 +64,74 @@ function Report() {
     // LOAD REPORTS
     // ==========================================================
 
-    const loadReports =
-        async () => {
+    const loadReports = async () => {
 
-            try {
+        try {
 
-                setLoading(true);
-                setError("");
+            setLoading(true);
 
-
-                const response =
-                    await apiClient(
-                        "/reports",
-                        {
-                            method:
-                                "GET",
-                        }
-                    );
+            setError("");
 
 
-                const data =
-                    Array.isArray(
-                        response?.data
+            const response =
+                await apiClient(
+                    "/reports",
+                    {
+                        method: "GET",
+                    }
+                );
+
+
+            const data =
+                Array.isArray(
+                    response?.data
+                )
+                    ? response.data
+                    : Array.isArray(
+                        response
                     )
-                        ? response.data
-                        : Array.isArray(
-                            response
-                        )
-                            ? response
-                            : [];
+                        ? response
+                        : [];
 
 
-                setReports(
-                    data
+            setReports(data);
+
+
+            if (data.length > 0) {
+
+                setCurrentReport(
+                    data[0]
                 );
 
+            } else {
 
-                if (
-                    data.length > 0
-                ) {
+                setCurrentReport(null);
 
-                    setCurrentReport(
-                        data[0]
-                    );
-                }
-
-            } catch (err) {
-
-                console.error(
-                    "Lỗi tải danh sách báo cáo:",
-                    err
-                );
-
-
-                setError(
-                    err?.data?.message ||
-                    err?.message ||
-                    "Không thể tải danh sách báo cáo."
-                );
-
-
-                setReports([]);
-
-            } finally {
-
-                setLoading(false);
             }
-        };
+
+        } catch (err) {
+
+            console.error(
+                "Lỗi tải danh sách báo cáo:",
+                err
+            );
+
+
+            setError(
+                err?.data?.message ||
+                err?.message ||
+                "Không thể tải danh sách báo cáo."
+            );
+
+
+            setReports([]);
+
+        } finally {
+
+            setLoading(false);
+
+        }
+    };
 
 
     // ==========================================================
@@ -180,17 +190,14 @@ function Report() {
 
             try {
 
-                setGenerating(
-                    true
-                );
+                setGenerating(true);
 
 
                 const response =
                     await apiClient(
                         "/reports",
                         {
-                            method:
-                                "POST",
+                            method: "POST",
 
                             body:
                                 JSON.stringify({
@@ -216,6 +223,7 @@ function Report() {
                         response?.message ||
                         "Không thể tạo báo cáo."
                     );
+
                 }
 
 
@@ -243,6 +251,7 @@ function Report() {
             } finally {
 
                 setGenerating(false);
+
             }
         };
 
@@ -265,8 +274,7 @@ function Report() {
                     await apiClient(
                         `/reports/${id}`,
                         {
-                            method:
-                                "GET",
+                            method: "GET",
                         }
                     );
 
@@ -280,6 +288,7 @@ function Report() {
                         response?.message ||
                         "Không thể tải báo cáo."
                     );
+
                 }
 
 
@@ -300,6 +309,7 @@ function Report() {
                     err?.message ||
                     "Không thể tải báo cáo."
                 );
+
             }
         };
 
@@ -320,7 +330,9 @@ function Report() {
 
 
             if (!confirmed) {
+
                 return;
+
             }
 
 
@@ -332,8 +344,7 @@ function Report() {
                 await apiClient(
                     `/reports/${id}`,
                     {
-                        method:
-                            "DELETE",
+                        method: "DELETE",
                     }
                 );
 
@@ -346,6 +357,7 @@ function Report() {
                     setCurrentReport(
                         null
                     );
+
                 }
 
 
@@ -364,6 +376,7 @@ function Report() {
                     err?.message ||
                     "Không thể xóa báo cáo."
                 );
+
             }
         };
 
@@ -376,6 +389,7 @@ function Report() {
         () => {
 
             setFromDate("");
+
             setToDate("");
 
         };
@@ -398,6 +412,7 @@ function Report() {
                 ) +
                 " đ"
             );
+
         };
 
 
@@ -411,7 +426,9 @@ function Report() {
         ) => {
 
             if (!value) {
+
                 return "-";
+
             }
 
 
@@ -428,12 +445,14 @@ function Report() {
             ) {
 
                 return "-";
+
             }
 
 
             return date.toLocaleDateString(
                 "vi-VN"
             );
+
         };
 
 
@@ -447,7 +466,9 @@ function Report() {
         ) => {
 
             if (!value) {
+
                 return "-";
+
             }
 
 
@@ -464,12 +485,14 @@ function Report() {
             ) {
 
                 return "-";
+
             }
 
 
             return date.toLocaleString(
                 "vi-VN"
             );
+
         };
 
 
@@ -498,10 +521,493 @@ function Report() {
                     user.email ||
                     "-"
                 );
+
             }
 
 
             return "-";
+
+        };
+
+
+    // ==========================================================
+    // EXPORT CURRENT REPORT
+    // ==========================================================
+
+    const handleExportCurrentReport =
+        () => {
+
+            if (!currentReport) {
+
+                setError(
+                    "Chưa có báo cáo để xuất Excel."
+                );
+
+                return;
+
+            }
+
+
+            try {
+
+                setExporting(true);
+
+                setError("");
+
+
+                const summaryData = [
+
+                    {
+                        "Nội dung":
+                            "BÁO CÁO DOANH THU VÀ ĐẶT SÂN",
+                        "Giá trị":
+                            "",
+                    },
+
+                    {
+                        "Nội dung":
+                            "Từ ngày",
+                        "Giá trị":
+                            formatDate(
+                                currentReport.fromDate
+                            ),
+                    },
+
+                    {
+                        "Nội dung":
+                            "Đến ngày",
+                        "Giá trị":
+                            formatDate(
+                                currentReport.toDate
+                            ),
+                    },
+
+                    {
+                        "Nội dung":
+                            "Tổng doanh thu",
+                        "Giá trị":
+                            Number(
+                                currentReport.totalRevenue || 0
+                            ),
+                    },
+
+                    {
+                        "Nội dung":
+                            "Giao dịch đã thanh toán",
+                        "Giá trị":
+                            Number(
+                                currentReport.totalPaidPayments || 0
+                            ),
+                    },
+
+                    {
+                        "Nội dung":
+                            "Tổng lượt đặt sân",
+                        "Giá trị":
+                            Number(
+                                currentReport.totalBookings || 0
+                            ),
+                    },
+
+                    {
+                        "Nội dung":
+                            "Booking đã xác nhận",
+                        "Giá trị":
+                            Number(
+                                currentReport.confirmedBookings || 0
+                            ),
+                    },
+
+                    {
+                        "Nội dung":
+                            "Booking chờ xử lý",
+                        "Giá trị":
+                            Number(
+                                currentReport.pendingBookings || 0
+                            ),
+                    },
+
+                    {
+                        "Nội dung":
+                            "Booking đã hủy",
+                        "Giá trị":
+                            Number(
+                                currentReport.cancelledBookings || 0
+                            ),
+                    },
+
+                    {
+                        "Nội dung":
+                            "Người tạo",
+                        "Giá trị":
+                            getCreatorName(
+                                currentReport
+                            ),
+                    },
+
+                    {
+                        "Nội dung":
+                            "Thời gian tạo",
+                        "Giá trị":
+                            formatDateTime(
+                                currentReport.createdAt
+                            ),
+                    },
+
+                ];
+
+
+                const dailyData =
+                    Array.isArray(
+                        currentReport.dailyStats
+                    )
+                        ? currentReport.dailyStats.map(
+                            item => ({
+                                "Ngày":
+                                    formatDate(
+                                        item.date
+                                    ),
+
+                                "Tổng lượt đặt":
+                                    Number(
+                                        item.bookings || 0
+                                    ),
+
+                                "Đã xác nhận":
+                                    Number(
+                                        item.confirmed || 0
+                                    ),
+
+                                "Chờ xử lý":
+                                    Number(
+                                        item.pending || 0
+                                    ),
+
+                                "Đã hủy":
+                                    Number(
+                                        item.cancelled || 0
+                                    ),
+
+                                "Doanh thu":
+                                    Number(
+                                        item.revenue || 0
+                                    ),
+                            })
+                        )
+                        : [];
+
+
+                const workbook =
+                    XLSX.utils.book_new();
+
+
+                // ==================================================
+                // SHEET 1 - TỔNG QUAN
+                // ==================================================
+
+                const summarySheet =
+                    XLSX.utils.json_to_sheet(
+                        summaryData
+                    );
+
+
+                summarySheet["!cols"] = [
+                    {
+                        wch: 30,
+                    },
+                    {
+                        wch: 30,
+                    },
+                ];
+
+
+                XLSX.utils.book_append_sheet(
+                    workbook,
+                    summarySheet,
+                    "Tổng quan"
+                );
+
+
+                // ==================================================
+                // SHEET 2 - THỐNG KÊ THEO NGÀY
+                // ==================================================
+
+                if (
+                    dailyData.length > 0
+                ) {
+
+                    const dailySheet =
+                        XLSX.utils.json_to_sheet(
+                            dailyData
+                        );
+
+
+                    dailySheet["!cols"] = [
+                        {
+                            wch: 15,
+                        },
+                        {
+                            wch: 18,
+                        },
+                        {
+                            wch: 18,
+                        },
+                        {
+                            wch: 18,
+                        },
+                        {
+                            wch: 15,
+                        },
+                        {
+                            wch: 20,
+                        },
+                    ];
+
+
+                    XLSX.utils.book_append_sheet(
+                        workbook,
+                        dailySheet,
+                        "Theo ngày"
+                    );
+
+                }
+
+
+                // ==================================================
+                // EXPORT
+                // ==================================================
+
+                const from =
+                    String(
+                        currentReport.fromDate ||
+                        ""
+                    ).slice(
+                        0,
+                        10
+                    );
+
+
+                const to =
+                    String(
+                        currentReport.toDate ||
+                        ""
+                    ).slice(
+                        0,
+                        10
+                    );
+
+
+                const fileName =
+                    `BaoCao_${from}_${to}.xlsx`;
+
+
+                XLSX.writeFile(
+                    workbook,
+                    fileName
+                );
+
+
+            } catch (err) {
+
+                console.error(
+                    "Export current report error:",
+                    err
+                );
+
+
+                setError(
+                    "Không thể xuất báo cáo Excel."
+                );
+
+            } finally {
+
+                setExporting(false);
+
+            }
+        };
+
+
+    // ==========================================================
+    // EXPORT REPORT HISTORY
+    // ==========================================================
+
+    const handleExportReportHistory =
+        () => {
+
+            if (
+                !Array.isArray(reports) ||
+                reports.length === 0
+            ) {
+
+                setError(
+                    "Không có lịch sử báo cáo để xuất Excel."
+                );
+
+                return;
+
+            }
+
+
+            try {
+
+                setExporting(true);
+
+                setError("");
+
+
+                const historyData =
+                    reports.map(
+                        (
+                            report,
+                            index
+                        ) => ({
+
+                            "#":
+                                index + 1,
+
+                            "Từ ngày":
+                                formatDate(
+                                    report.fromDate
+                                ),
+
+                            "Đến ngày":
+                                formatDate(
+                                    report.toDate
+                                ),
+
+                            "Doanh thu":
+                                Number(
+                                    report.totalRevenue || 0
+                                ),
+
+                            "Giao dịch đã thanh toán":
+                                Number(
+                                    report.totalPaidPayments || 0
+                                ),
+
+                            "Tổng lượt đặt":
+                                Number(
+                                    report.totalBookings || 0
+                                ),
+
+                            "Đã xác nhận":
+                                Number(
+                                    report.confirmedBookings || 0
+                                ),
+
+                            "Chờ xử lý":
+                                Number(
+                                    report.pendingBookings || 0
+                                ),
+
+                            "Đã hủy":
+                                Number(
+                                    report.cancelledBookings || 0
+                                ),
+
+                            "Người tạo":
+                                getCreatorName(
+                                    report
+                                ),
+
+                            "Tạo lúc":
+                                formatDateTime(
+                                    report.createdAt
+                                ),
+
+                        })
+                    );
+
+
+                const workbook =
+                    XLSX.utils.book_new();
+
+
+                const worksheet =
+                    XLSX.utils.json_to_sheet(
+                        historyData
+                    );
+
+
+                worksheet["!cols"] = [
+
+                    {
+                        wch: 6,
+                    },
+
+                    {
+                        wch: 15,
+                    },
+
+                    {
+                        wch: 15,
+                    },
+
+                    {
+                        wch: 20,
+                    },
+
+                    {
+                        wch: 25,
+                    },
+
+                    {
+                        wch: 18,
+                    },
+
+                    {
+                        wch: 15,
+                    },
+
+                    {
+                        wch: 15,
+                    },
+
+                    {
+                        wch: 15,
+                    },
+
+                    {
+                        wch: 20,
+                    },
+
+                    {
+                        wch: 25,
+                    },
+
+                ];
+
+
+                XLSX.utils.book_append_sheet(
+                    workbook,
+                    worksheet,
+                    "Lịch sử báo cáo"
+                );
+
+
+                XLSX.writeFile(
+                    workbook,
+                    "LichSuBaoCao.xlsx"
+                );
+
+
+            } catch (err) {
+
+                console.error(
+                    "Export report history error:",
+                    err
+                );
+
+
+                setError(
+                    "Không thể xuất lịch sử báo cáo Excel."
+                );
+
+            } finally {
+
+                setExporting(false);
+
+            }
         };
 
 
@@ -533,7 +1039,9 @@ function Report() {
                 </div>
 
             </div>
+
         );
+
     }
 
 
@@ -570,6 +1078,9 @@ function Report() {
                     onClick={
                         loadReports
                     }
+                    disabled={
+                        exporting
+                    }
                 >
 
                     <i className="bi bi-arrow-clockwise me-2"></i>
@@ -594,6 +1105,7 @@ function Report() {
                     {error}
 
                 </div>
+
             )}
 
 
@@ -688,19 +1200,25 @@ function Report() {
                                     {generating ? (
 
                                         <>
+
                                             <span
                                                 className="spinner-border spinner-border-sm me-2"
                                             />
 
                                             Đang tạo...
+
                                         </>
 
                                     ) : (
 
                                         <>
+
                                             <i className="bi bi-file-earmark-bar-graph me-2"></i>
+
                                             Tạo báo cáo
+
                                         </>
+
                                     )}
 
                                 </button>
@@ -716,7 +1234,9 @@ function Report() {
                                         generating
                                     }
                                 >
+
                                     Đặt lại
+
                                 </button>
 
                             </div>
@@ -769,9 +1289,53 @@ function Report() {
                             </div>
 
 
-                            <span className="badge bg-success">
-                                Đã lưu
-                            </span>
+                            <div className="d-flex gap-2">
+
+                                <span className="badge bg-success d-flex align-items-center">
+
+                                    Đã lưu
+
+                                </span>
+
+
+                                <button
+                                    type="button"
+                                    className="btn btn-success btn-sm"
+                                    onClick={
+                                        handleExportCurrentReport
+                                    }
+                                    disabled={
+                                        exporting
+                                    }
+                                >
+
+                                    {exporting ? (
+
+                                        <>
+
+                                            <span
+                                                className="spinner-border spinner-border-sm me-1"
+                                            />
+
+                                            Đang xuất...
+
+                                        </>
+
+                                    ) : (
+
+                                        <>
+
+                                            <i className="bi bi-file-earmark-excel me-1"></i>
+
+                                            Xuất Excel
+
+                                        </>
+
+                                    )}
+
+                                </button>
+
+                            </div>
 
                         </div>
 
@@ -780,9 +1344,7 @@ function Report() {
 
                     <div className="card-body">
 
-                        {/* ==================================================
-                            SUMMARY
-                        ================================================== */}
+                        {/* SUMMARY */}
 
                         <div className="row g-4 mb-4">
 
@@ -874,9 +1436,7 @@ function Report() {
                         </div>
 
 
-                        {/* ==================================================
-                            BOOKING STATUS
-                        ================================================== */}
+                        {/* BOOKING STATUS */}
 
                         <div className="row g-4 mb-4">
 
@@ -924,9 +1484,7 @@ function Report() {
                         </div>
 
 
-                        {/* ==================================================
-                            REPORT INFO
-                        ================================================== */}
+                        {/* REPORT INFO */}
 
                         <div className="alert alert-light">
 
@@ -970,9 +1528,7 @@ function Report() {
                         </div>
 
 
-                        {/* ==================================================
-                            DAILY REPORT
-                        ================================================== */}
+                        {/* DAILY REPORT */}
 
                         <h5 className="mb-3">
                             Thống kê theo ngày
@@ -1131,12 +1687,14 @@ function Report() {
                                     </p>
 
                                 </div>
+
                             )
                         }
 
                     </div>
 
                 </div>
+
             )}
 
 
@@ -1163,14 +1721,37 @@ function Report() {
                         </div>
 
 
-                        <span className="badge bg-secondary">
+                        <div className="d-flex align-items-center gap-2">
 
-                            {
-                                reports.length
-                            }{" "}
-                            báo cáo
+                            <span className="badge bg-secondary">
 
-                        </span>
+                                {
+                                    reports.length
+                                }{" "}
+                                báo cáo
+
+                            </span>
+
+
+                            <button
+                                type="button"
+                                className="btn btn-success btn-sm"
+                                onClick={
+                                    handleExportReportHistory
+                                }
+                                disabled={
+                                    exporting ||
+                                    reports.length === 0
+                                }
+                            >
+
+                                <i className="bi bi-file-earmark-excel me-1"></i>
+
+                                Xuất Excel
+
+                            </button>
+
+                        </div>
 
                     </div>
 
@@ -1402,6 +1983,7 @@ function Report() {
                                 </table>
 
                             </div>
+
                         )
                     }
 
@@ -1410,7 +1992,9 @@ function Report() {
             </div>
 
         </div>
+
     );
+
 }
 
 

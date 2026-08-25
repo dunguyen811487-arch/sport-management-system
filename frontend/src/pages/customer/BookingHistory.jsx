@@ -225,9 +225,28 @@ function BookingHistory() {
 
     useEffect(() => {
 
-        loadBookings();
+    loadBookings();
 
-    }, []);
+
+    // Cập nhật lịch sử mỗi 60 giây
+    const interval =
+        setInterval(
+            () => {
+                loadBookings();
+            },
+            60 * 1000
+        );
+
+
+    return () => {
+
+        clearInterval(
+            interval
+        );
+
+    };
+
+}, []);
 
 
     // ==========================================================
@@ -1072,31 +1091,18 @@ function BookingHistory() {
                                                                             </button>
 
 
-                                                                            {
-                                                                                (
-                                                                                    booking.status ===
-                                                                                        "pending" ||
-                                                                                    booking.status ===
-                                                                                        "confirmed"
-                                                                                ) && (
-
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        className="btn btn-outline-danger"
-                                                                                        onClick={() =>
-                                                                                            handleCancelBooking(
-                                                                                                booking
-                                                                                            )
-                                                                                        }
-                                                                                    >
-
-                                                                                        <i className="bi bi-x-circle me-2"></i>
-
-                                                                                        Hủy booking
-
-                                                                                    </button>
-                                                                                )
-                                                                            }
+                                                                            {booking.status === "pending" && (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className="btn btn-outline-danger"
+                                                                                    onClick={() =>
+                                                                                        handleCancelBooking(booking)
+                                                                                    }
+                                                                                >
+                                                                                    <i className="bi bi-x-circle me-2"></i>
+                                                                                    Hủy booking
+                                                                                </button>
+                                                                            )}
 
                                                                         </div>
 

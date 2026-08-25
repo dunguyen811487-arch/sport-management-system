@@ -531,7 +531,7 @@ function Dashboard() {
                 setError(
                     err?.data?.message ||
                     err?.message ||
-                    "Không thể tải Dashboard."
+                    "Không thể tải Trang chủ."
                 );
 
             } finally {
@@ -570,7 +570,7 @@ function Dashboard() {
                 />
 
                 <p className="text-muted mt-3">
-                    Đang tải Dashboard...
+                    Đang tải Trang chủ...
                 </p>
 
             </div>
@@ -593,7 +593,7 @@ function Dashboard() {
                     <div>
 
                         <h1 className="mb-1">
-                            Dashboard
+                            Trang chủ
                         </h1>
 
                         <p className="text-muted mb-0">
@@ -648,7 +648,7 @@ function Dashboard() {
                 <div>
 
                     <h1 className="mb-1">
-                        Dashboard
+                        Trang chủ
                     </h1>
 
 

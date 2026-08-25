@@ -1,13 +1,15 @@
 const Booking =
     require("../models/booking.model");
-const Payment =
-    require("../models/payment.model");
+
 const Field =
     require("../models/field.model");
 
+const Payment =
+    require("../models/payment.model");
+
 
 // ======================================================
-// HELPER: CHUYỂN HH:mm -> SỐ GIỜ
+// HELPER: HH:mm -> SỐ GIỜ
 // ======================================================
 
 const convertTimeToHour = (
@@ -73,6 +75,7 @@ const validateTime = (
         !startTime ||
         !endTime
     ) {
+
         throw new Error(
             "Vui lòng nhập giờ bắt đầu và giờ kết thúc"
         );
@@ -92,6 +95,7 @@ const validateTime = (
         Number.isNaN(startHour) ||
         Number.isNaN(endHour)
     ) {
+
         throw new Error(
             "Thời gian không hợp lệ. Định dạng phải là HH:mm"
         );
@@ -100,6 +104,7 @@ const validateTime = (
     if (
         endHour <= startHour
     ) {
+
         throw new Error(
             "Giờ kết thúc phải lớn hơn giờ bắt đầu"
         );
@@ -113,13 +118,92 @@ const validateTime = (
 
 
 // ======================================================
-// EXPIRE PENDING BOOKINGS
+// HELPER: TÍNH THỜI ĐIỂM HẾT HẠN BOOKING
+//
+// Quy tắc:
+// Booking 08:00 - 09:00
+// → hết hạn lúc 10:00
+//
+// Booking 19:00 - 20:00
+// → hết hạn lúc 21:00
+//
+// Dùng timezone Việt Nam UTC+07:00
 // ======================================================
+
+const calculatePaymentExpireTime = (
+    bookingDate,
+    endTime
+) => {
+
+    if (
+        !bookingDate ||
+        !endTime
+    ) {
+
+        return null;
+    }
+
+    const [year, month, day] =
+        String(
+            bookingDate
+        )
+            .split("-")
+            .map(
+                Number
+            );
+
+    const [
+        hour,
+        minute
+    ] =
+        String(
+            endTime
+        )
+            .split(":")
+            .map(
+                Number
+            );
+
+    if (
+        !year ||
+        !month ||
+        !day ||
+        Number.isNaN(hour) ||
+        Number.isNaN(minute)
+    ) {
+
+        return null;
+    }
+
+    // 1 giờ sau endTime
+    const expireHour =
+        hour + 1;
+
+    const expireDate =
+        new Date(
+            `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T${String(expireHour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00+07:00`
+        );
+
+    if (
+        Number.isNaN(
+            expireDate.getTime()
+        )
+    ) {
+
+        return null;
+    }
+
+    return expireDate;
+};
+
+
+// ======================================================
+// EXPIRE PENDING BOOKINGS
 //
-// Booking pending quá 15 phút:
-// → chuyển cancelled
-// → không còn giữ sân
-//
+// Booking pending quá 1 giờ kể từ endTime:
+// → cancelled
+// → paymentExpiresAt = null
+// → payment pending = failed
 // ======================================================
 
 const expirePendingBookings =
@@ -129,44 +213,96 @@ const expirePendingBookings =
             new Date();
 
 
-        const expiredBookings =
-            await Booking.find({
-                status: "pending",
+        // ==================================================
+        // LẤY BOOKING PENDING
+        //
+        // Không dùng paymentExpiresAt cũ nữa.
+        // Tính trực tiếp theo bookingDate + endTime.
+        // ==================================================
 
-                paymentExpiresAt: {
-                    $ne: null,
-                    $lte: now
-                }
-            }).select("_id");
+        const pendingBookings =
+            await Booking.find({
+                status:
+                    "pending"
+            });
 
 
         if (
-            expiredBookings.length === 0
+            pendingBookings.length === 0
         ) {
+
             return {
-                modifiedCount: 0
+                modifiedCount:
+                    0
             };
         }
 
 
-        const bookingIds =
-            expiredBookings.map(
-                booking =>
-                    booking._id
-            );
+        let modifiedCount =
+            0;
 
 
-        // ==================================================
-        // 1. HỦY BOOKING HẾT HẠN
-        // ==================================================
+        for (
+            const booking of
+            pendingBookings
+        ) {
 
-        const result =
-            await Booking.updateMany(
+            const expireTime =
+                calculatePaymentExpireTime(
+                    booking.bookingDate,
+                    booking.endTime
+                );
+
+
+            if (
+                !expireTime
+            ) {
+
+                continue;
+            }
+
+
+            // ==================================================
+            // CHƯA ĐẾN HẠN
+            // ==================================================
+
+            if (
+                now <
+                expireTime
+            ) {
+
+                continue;
+            }
+
+
+            // ==================================================
+            // ĐÃ QUÁ 1 GIỜ
+            // ==================================================
+
+            booking.status =
+                "cancelled";
+
+            booking.paymentExpiresAt =
+                null;
+
+
+            await booking.save();
+
+
+            // ==================================================
+            // PAYMENT
+            //
+            // Nếu payment vẫn pending
+            // → failed
+            //
+            // Payment đã paid thì booking đáng ra đã confirmed,
+            // nên không rơi vào đây.
+            // ==================================================
+
+            await Payment.updateOne(
                 {
-                    _id: {
-                        $in:
-                            bookingIds
-                    },
+                    bookingId:
+                        booking._id,
 
                     status:
                         "pending"
@@ -174,57 +310,37 @@ const expirePendingBookings =
                 {
                     $set: {
                         status:
-                            "cancelled",
+                            "failed",
 
-                        paymentExpiresAt:
+                        paidAt:
                             null
                     }
                 }
             );
 
 
-        // ==================================================
-        // 2. ĐỒNG BỘ PAYMENT
-        // ==================================================
-        //
-        // Chỉ pending -> cancelled.
-        // Payment paid không bị đổi.
-        //
-        // ==================================================
+            modifiedCount++;
 
-        await Payment.updateMany(
-            {
-                bookingId: {
-                    $in:
-                        bookingIds
-                },
-
-                status:
-                    "pending"
-            },
-            {
-                $set: {
-                    status:
-                        "cancelled",
-
-                    paidAt:
-                        null
-                }
-            }
-        );
-
-
-        if (
-            result.modifiedCount > 0
-        ) {
 
             console.log(
-                `Đã tự động hủy ${result.modifiedCount} booking pending hết hạn.`
+                `[BOOKING AUTO CANCEL] Booking ${booking._id} đã tự động hủy. Hết hạn lúc ${expireTime.toLocaleString("vi-VN")}`
             );
         }
 
 
-        return result;
+        if (
+            modifiedCount > 0
+        ) {
+
+            console.log(
+                `Đã tự động hủy ${modifiedCount} booking pending quá hạn.`
+            );
+        }
+
+
+        return {
+            modifiedCount
+        };
     };
 
 
@@ -241,116 +357,197 @@ const checkOverlappingBooking =
         excludeBookingId = null
     }) => {
 
+        // ==================================================
+        // DỌN BOOKING HẾT HẠN
+        // ==================================================
+
         await expirePendingBookings();
 
+
         const query = {
-            fieldId: fieldId,
 
-            bookingDate: bookingDate,
+            fieldId:
 
-            // Chỉ cancelled là không chiếm sân.
+                fieldId,
+
+            bookingDate:
+
+                bookingDate,
+
+            // Chỉ cancelled không chiếm sân
             status: {
-                $ne: "cancelled"
+
+                $ne:
+                    "cancelled"
+
             },
 
             $expr: {
+
                 $and: [
 
+                    // ------------------------------------------------
                     // start < requested end
+                    // ------------------------------------------------
+
                     {
                         $lt: [
+
                             {
                                 $add: [
+
                                     {
                                         $toInt: {
+
                                             $arrayElemAt: [
+
                                                 {
                                                     $split: [
+
                                                         "$startTime",
+
                                                         ":"
+
                                                     ]
                                                 },
+
                                                 0
+
                                             ]
                                         }
                                     },
+
                                     {
+
                                         $divide: [
+
                                             {
+
                                                 $toInt: {
+
                                                     $arrayElemAt: [
+
                                                         {
                                                             $split: [
+
                                                                 "$startTime",
+
                                                                 ":"
+
                                                             ]
                                                         },
+
                                                         1
+
                                                     ]
                                                 }
                                             },
+
                                             60
+
                                         ]
                                     }
+
                                 ]
                             },
+
                             endHour
+
                         ]
                     },
 
+
+                    // ------------------------------------------------
                     // end > requested start
+                    // ------------------------------------------------
+
                     {
                         $gt: [
+
                             {
+
                                 $add: [
+
                                     {
+
                                         $toInt: {
+
                                             $arrayElemAt: [
+
                                                 {
+
                                                     $split: [
+
                                                         "$endTime",
+
                                                         ":"
+
                                                     ]
                                                 },
+
                                                 0
+
                                             ]
                                         }
                                     },
+
                                     {
+
                                         $divide: [
+
                                             {
+
                                                 $toInt: {
+
                                                     $arrayElemAt: [
+
                                                         {
+
                                                             $split: [
+
                                                                 "$endTime",
+
                                                                 ":"
+
                                                             ]
                                                         },
+
                                                         1
+
                                                     ]
                                                 }
                                             },
+
                                             60
+
                                         ]
                                     }
+
                                 ]
                             },
+
                             startHour
+
                         ]
                     }
+
                 ]
             }
         };
 
+
         if (
             excludeBookingId
         ) {
+
             query._id = {
+
                 $ne:
                     excludeBookingId
+
             };
         }
+
 
         return await Booking.findOne(
             query
@@ -372,20 +569,25 @@ const createBooking =
                 data.fieldId
             );
 
+
         if (!field) {
+
             throw new Error(
                 "Sân không tồn tại"
             );
         }
 
+
         if (
             field.status !==
             "active"
         ) {
+
             throw new Error(
                 "Sân hiện không hoạt động"
             );
         }
+
 
         const {
             startHour,
@@ -396,6 +598,7 @@ const createBooking =
                 data.endTime
             );
 
+
         const overlappingBooking =
             await checkOverlappingBooking({
                 fieldId:
@@ -405,30 +608,43 @@ const createBooking =
                     data.bookingDate,
 
                 startHour,
+
                 endHour
             });
+
 
         if (
             overlappingBooking
         ) {
+
             throw new Error(
                 "Khung giờ này bị trùng với một booking khác"
             );
         }
 
+
         const duration =
             endHour -
             startHour;
+
 
         const totalPrice =
             duration *
             field.pricePerHour;
 
+
+        // ==================================================
+        // HẠN THANH TOÁN
+        //
+        // endTime + 1 giờ
+        // ==================================================
+
         const paymentExpiresAt =
-            new Date(
-                Date.now() +
-                15 * 60 * 1000
+            calculatePaymentExpireTime(
+                data.bookingDate,
+                data.endTime
             );
+
 
         const bookingData = {
 
@@ -459,6 +675,7 @@ const createBooking =
             paymentExpiresAt
         };
 
+
         return await Booking.create(
             bookingData
         );
@@ -474,6 +691,7 @@ const getAllBookings =
 
         await expirePendingBookings();
 
+
         return await Booking
             .find()
             .populate({
@@ -487,8 +705,11 @@ const getAllBookings =
                 "fieldId"
             )
             .sort({
-                bookingDate: 1,
-                startTime: 1
+                bookingDate:
+                    1,
+
+                startTime:
+                    1
             });
     };
 
@@ -504,26 +725,31 @@ const getBookingById =
 
         await expirePendingBookings();
 
-        const booking =
-            await Booking.findById(
-                id
-            )
-            .populate({
-                path:
-                    "customerId",
 
-                select:
-                    "-password"
-            })
-            .populate(
-                "fieldId"
-            );
+        const booking =
+            await Booking
+                .findById(
+                    id
+                )
+                .populate({
+                    path:
+                        "customerId",
+
+                    select:
+                        "-password"
+                })
+                .populate(
+                    "fieldId"
+                );
+
 
         if (!booking) {
+
             throw new Error(
                 "Không tìm thấy booking"
             );
         }
+
 
         return booking;
     };
@@ -539,6 +765,7 @@ const getBookingsByCustomer =
     ) => {
 
         await expirePendingBookings();
+
 
         return await Booking
             .find({
@@ -556,8 +783,46 @@ const getBookingsByCustomer =
                 "fieldId"
             )
             .sort({
-                bookingDate: -1,
-                startTime: 1
+                bookingDate:
+                    -1,
+
+                startTime:
+                    1
+            });
+    };
+
+
+// ======================================================
+// GET BOOKED SLOTS
+// CUSTOMER + STAFF + ADMIN
+// ======================================================
+
+const getBookedSlots =
+    async (
+        fieldId,
+        bookingDate
+    ) => {
+
+        await expirePendingBookings();
+
+
+        return await Booking
+            .find({
+                fieldId,
+
+                bookingDate,
+
+                status: {
+                    $ne:
+                        "cancelled"
+                }
+            })
+            .select(
+                "_id startTime endTime status"
+            )
+            .sort({
+                startTime:
+                    1
             });
     };
 
@@ -578,54 +843,69 @@ const updateBooking =
                 id
             );
 
+
         if (!booking) {
+
             throw new Error(
                 "Không tìm thấy booking"
             );
         }
 
+
         const updateData = {
             ...data
         };
 
+
         delete updateData.customerId;
+
         delete updateData.totalPrice;
+
 
         const newFieldId =
             updateData.fieldId ||
             booking.fieldId;
 
+
         const newBookingDate =
             updateData.bookingDate ||
             booking.bookingDate;
+
 
         const newStartTime =
             updateData.startTime ||
             booking.startTime;
 
+
         const newEndTime =
             updateData.endTime ||
             booking.endTime;
+
 
         const field =
             await Field.findById(
                 newFieldId
             );
 
+
         if (!field) {
+
             throw new Error(
                 "Sân không tồn tại"
             );
         }
 
+
         if (
             field.status !==
             "active"
         ) {
+
             throw new Error(
                 "Sân hiện không hoạt động"
             );
         }
+
 
         const {
             startHour,
@@ -636,6 +916,7 @@ const updateBooking =
                 newEndTime
             );
 
+
         const overlappingBooking =
             await checkOverlappingBooking({
                 fieldId:
@@ -645,62 +926,91 @@ const updateBooking =
                     newBookingDate,
 
                 startHour,
+
                 endHour,
 
                 excludeBookingId:
                     id
             });
 
+
         if (
             overlappingBooking
         ) {
+
             throw new Error(
                 "Khung giờ mới bị trùng với một booking khác"
             );
         }
 
+
         const duration =
             endHour -
             startHour;
+
 
         const totalPrice =
             duration *
             field.pricePerHour;
 
+
         updateData.fieldId =
             newFieldId;
+
 
         updateData.bookingDate =
             newBookingDate;
 
+
         updateData.startTime =
             newStartTime;
+
 
         updateData.endTime =
             newEndTime;
 
+
         updateData.totalPrice =
             totalPrice;
 
-        const updatedBooking =
-            await Booking.findByIdAndUpdate(
-                id,
-                updateData,
-                {
-                    new: true,
-                    runValidators: true
-                }
-            )
-            .populate({
-                path:
-                    "customerId",
 
-                select:
-                    "-password"
-            })
-            .populate(
-                "fieldId"
+        // ==================================================
+        // CẬP NHẬT HẠN HỦY
+        // ==================================================
+
+        updateData.paymentExpiresAt =
+            calculatePaymentExpireTime(
+                newBookingDate,
+                newEndTime
             );
+
+
+        const updatedBooking =
+            await Booking
+                .findByIdAndUpdate(
+                    id,
+
+                    updateData,
+
+                    {
+                        new:
+                            true,
+
+                        runValidators:
+                            true
+                    }
+                )
+                .populate({
+                    path:
+                        "customerId",
+
+                    select:
+                        "-password"
+                })
+                .populate(
+                    "fieldId"
+                );
+
 
         return updatedBooking;
     };
@@ -708,109 +1018,124 @@ const updateBooking =
 
 // ======================================================
 // CANCEL BOOKING
+// CUSTOMER
 // ======================================================
 
-const cancelBooking =
-    async (
-        id
-    ) => {
+const cancelBooking = async (id) => {
 
-        const booking =
-            await Booking.findById(
-                id
-            );
+    const booking =
+        await Booking.findById(id);
 
+    if (!booking) {
 
-        if (!booking) {
-
-            throw new Error(
-                "Không tìm thấy booking"
-            );
-        }
+        throw new Error(
+            "Không tìm thấy booking"
+        );
+    }
 
 
-        if (
-            booking.status ===
-            "cancelled"
-        ) {
+    // ==================================================
+    // ĐÃ HỦY
+    // ==================================================
 
-            throw new Error(
-                "Booking đã được hủy trước đó"
-            );
-        }
+    if (
+        booking.status ===
+        "cancelled"
+    ) {
 
-
-        // ==================================================
-        // 1. HỦY BOOKING
-        // ==================================================
-
-        booking.status =
-            "cancelled";
+        throw new Error(
+            "Booking đã được hủy trước đó"
+        );
+    }
 
 
-        booking.paymentExpiresAt =
-            null;
+    // ==================================================
+    // ĐÃ XÁC NHẬN
+    // KHÔNG CHO CUSTOMER HỦY
+    // ==================================================
+
+    if (
+        booking.status ===
+        "confirmed"
+    ) {
+
+        throw new Error(
+            "Booking đã được xác nhận, không thể hủy"
+        );
+    }
 
 
-        await booking.save();
+    // ==================================================
+    // CHỈ CHO HỦY BOOKING PENDING
+    // ==================================================
+
+    if (
+        booking.status !==
+        "pending"
+    ) {
+
+        throw new Error(
+            "Booking không thể hủy"
+        );
+    }
 
 
-        // ==================================================
-        // 2. ĐỒNG BỘ PAYMENT
-        // ==================================================
-        //
-        // pending -> cancelled
-        //
-        // Nếu payment đã paid:
-        // không tự đổi sang cancelled.
-        // Nếu cần hoàn tiền thì dùng refunded.
-        //
-        // ==================================================
+    // ==================================================
+    // HỦY BOOKING
+    // ==================================================
 
-        const payment =
-            await Payment.findOne({
-                bookingId:
-                    booking._id
-            });
+    booking.status =
+        "cancelled";
+
+    booking.paymentExpiresAt =
+        null;
 
 
-        if (
-            payment &&
-            payment.status ===
+    await booking.save();
+
+
+    // ==================================================
+    // PAYMENT PENDING → FAILED
+    // ==================================================
+
+    await Payment.updateOne(
+        {
+            bookingId:
+                booking._id,
+
+            status:
                 "pending"
-        ) {
+        },
+        {
+            $set: {
 
-            payment.status =
-                "cancelled";
+                status:
+                    "failed",
 
-
-            payment.paidAt =
-                null;
-
-
-            await payment.save();
+                paidAt:
+                    null
+            }
         }
+    );
 
 
-        // ==================================================
-        // 3. TRẢ BOOKING
-        // ==================================================
+    // ==================================================
+    // RETURN BOOKING
+    // ==================================================
 
-        return await Booking
-            .findById(
-                id
-            )
-            .populate({
-                path:
-                    "customerId",
+    return await Booking
+        .findById(id)
+        .populate({
+            path:
+                "customerId",
 
-                select:
-                    "-password"
-            })
-            .populate(
-                "fieldId"
-            );
-    };
+            select:
+                "-password"
+        })
+        .populate(
+            "fieldId"
+        );
+};
 
 
 // ======================================================
@@ -827,52 +1152,27 @@ const deleteBooking =
                 id
             );
 
+
         if (!booking) {
+
             throw new Error(
                 "Không tìm thấy booking"
             );
         }
 
+
         await Booking.findByIdAndDelete(
             id
         );
 
+
         return booking;
     };
-    // ======================================================
-// GET BOOKED SLOTS
-// CUSTOMER + STAFF + ADMIN
-// Lấy tất cả khung giờ đã được đặt của một sân trong một ngày
+
+
 // ======================================================
-
-const getBookedSlots = async (
-    fieldId,
-    bookingDate
-) => {
-
-    // Tự động hủy booking pending đã hết hạn
-    await expirePendingBookings();
-
-    const bookings =
-        await Booking.find({
-            fieldId,
-            bookingDate,
-
-            // Chỉ booking cancelled mới không chiếm sân
-            status: {
-                $ne: "cancelled"
-            }
-        })
-        .select(
-            "_id startTime endTime status"
-        )
-        .sort({
-            startTime: 1
-        });
-
-
-    return bookings;
-};
+// EXPORT
+// ======================================================
 
 module.exports = {
 

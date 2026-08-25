@@ -1,7 +1,16 @@
 import {
+    Navigate,
     Routes,
     Route,
 } from "react-router-dom";
+
+
+// ==========================================================
+// AUTH HOOK
+// ==========================================================
+
+import useAuth
+    from "./hooks/useAuth";
 
 
 // ==========================================================
@@ -30,7 +39,7 @@ import Register
 
 
 // ==========================================================
-// PROTECTED
+// PROTECTED ROUTE
 // ==========================================================
 
 import ProtectedRoute
@@ -76,7 +85,7 @@ import Profile
 // ADMIN
 // ==========================================================
 
-import Dashboard
+import AdminDashboard
     from "./pages/admin/Dashboard";
 
 import UserManagement
@@ -85,13 +94,13 @@ import UserManagement
 import FieldTypeManagement
     from "./pages/admin/FieldTypeManagement";
 
-import FieldManagement
+import AdminFieldManagement
     from "./pages/admin/FieldManagement";
 
-import BookingManagement
+import AdminBookingManagement
     from "./pages/admin/BookingManagement";
 
-import PaymentManagement
+import AdminPaymentManagement
     from "./pages/admin/PaymentManagement";
 
 import Report
@@ -128,23 +137,17 @@ function Forbidden() {
 
         <div
             style={{
-                minHeight:
-                    "100vh",
+                minHeight: "100vh",
 
-                display:
-                    "flex",
+                display: "flex",
 
-                alignItems:
-                    "center",
+                alignItems: "center",
 
-                justifyContent:
-                    "center",
+                justifyContent: "center",
 
-                textAlign:
-                    "center",
+                textAlign: "center",
 
-                padding:
-                    "40px",
+                padding: "40px",
             }}
         >
 
@@ -152,8 +155,7 @@ function Forbidden() {
 
                 <h1
                     style={{
-                        fontSize:
-                            "80px",
+                        fontSize: "80px",
                     }}
                 >
                     403
@@ -176,11 +178,9 @@ function Forbidden() {
                         window.history.back()
                     }
                     style={{
-                        padding:
-                            "8px 18px",
+                        padding: "8px 18px",
 
-                        cursor:
-                            "pointer",
+                        cursor: "pointer",
                     }}
                 >
                     Quay lại
@@ -203,23 +203,17 @@ function NotFound() {
 
         <div
             style={{
-                minHeight:
-                    "100vh",
+                minHeight: "100vh",
 
-                display:
-                    "flex",
+                display: "flex",
 
-                alignItems:
-                    "center",
+                alignItems: "center",
 
-                justifyContent:
-                    "center",
+                justifyContent: "center",
 
-                textAlign:
-                    "center",
+                textAlign: "center",
 
-                padding:
-                    "40px",
+                padding: "40px",
             }}
         >
 
@@ -227,8 +221,7 @@ function NotFound() {
 
                 <h1
                     style={{
-                        fontSize:
-                            "80px",
+                        fontSize: "80px",
                     }}
                 >
                     404
@@ -251,11 +244,9 @@ function NotFound() {
                         window.location.href = "/";
                     }}
                     style={{
-                        padding:
-                            "8px 18px",
+                        padding: "8px 18px",
 
-                        cursor:
-                            "pointer",
+                        cursor: "pointer",
                     }}
                 >
                     Về trang chủ
@@ -264,6 +255,80 @@ function NotFound() {
             </div>
 
         </div>
+    );
+}
+
+
+// ==========================================================
+// ROLE HOME CONTENT
+//
+// Component này nằm bên trong CustomerLayout
+// nên CustomerLayout vẫn sử dụng Outlet bình thường.
+//
+// /
+// ├── chưa đăng nhập -> Home
+// ├── customer       -> Home
+// ├── staff          -> /staff/dashboard
+// └── admin          -> /admin/dashboard
+// ==========================================================
+
+function RoleHomeContent() {
+
+    const {
+        isAuthenticated,
+        user,
+    } = useAuth();
+
+
+    const role =
+        String(
+            user?.role ||
+            ""
+        ).toLowerCase();
+
+
+    // ==========================================================
+    // ADMIN
+    // ==========================================================
+
+    if (
+        isAuthenticated &&
+        role === "admin"
+    ) {
+
+        return (
+            <Navigate
+                to="/admin/dashboard"
+                replace
+            />
+        );
+    }
+
+
+    // ==========================================================
+    // STAFF
+    // ==========================================================
+
+    if (
+        isAuthenticated &&
+        role === "staff"
+    ) {
+
+        return (
+            <Navigate
+                to="/staff/dashboard"
+                replace
+            />
+        );
+    }
+
+
+    // ==========================================================
+    // CUSTOMER / CHƯA ĐĂNG NHẬP
+    // ==========================================================
+
+    return (
+        <Home />
     );
 }
 
@@ -299,7 +364,7 @@ function App() {
 
 
             {/* ==================================================
-                CUSTOMER PUBLIC
+                CUSTOMER LAYOUT
             ================================================== */}
 
             <Route
@@ -308,13 +373,21 @@ function App() {
                 }
             >
 
+                {/* ==============================================
+                    ROOT
+                ============================================== */}
+
                 <Route
                     path="/"
                     element={
-                        <Home />
+                        <RoleHomeContent />
                     }
                 />
 
+
+                {/* ==============================================
+                    CUSTOMER PUBLIC
+                ============================================== */}
 
                 <Route
                     path="/fields"
@@ -354,6 +427,10 @@ function App() {
                     }
                 >
 
+                    {/* ==========================================
+                        BOOKING
+                    ========================================== */}
+
                     <Route
                         path="/booking"
                         element={
@@ -361,6 +438,10 @@ function App() {
                         }
                     />
 
+
+                    {/* ==========================================
+                        BOOKING DETAIL
+                    ========================================== */}
 
                     <Route
                         path="/booking/:id"
@@ -370,6 +451,10 @@ function App() {
                     />
 
 
+                    {/* ==========================================
+                        BOOKING CONFIRM
+                    ========================================== */}
+
                     <Route
                         path="/booking-confirm"
                         element={
@@ -377,6 +462,10 @@ function App() {
                         }
                     />
 
+
+                    {/* ==========================================
+                        PAYMENT
+                    ========================================== */}
 
                     <Route
                         path="/payment"
@@ -386,6 +475,10 @@ function App() {
                     />
 
 
+                    {/* ==========================================
+                        BOOKING SUCCESS
+                    ========================================== */}
+
                     <Route
                         path="/booking-success"
                         element={
@@ -394,6 +487,10 @@ function App() {
                     />
 
 
+                    {/* ==========================================
+                        BOOKING HISTORY
+                    ========================================== */}
+
                     <Route
                         path="/booking-history"
                         element={
@@ -401,6 +498,10 @@ function App() {
                         }
                     />
 
+
+                    {/* ==========================================
+                        PROFILE
+                    ========================================== */}
 
                     <Route
                         path="/profile"
@@ -435,17 +536,9 @@ function App() {
                     }
                 >
 
-                    {/* /staff -> Dashboard */}
-
-                    <Route
-                        index
-                        element={
-                            <StaffDashboard />
-                        }
-                    />
-
-
-                    {/* DASHBOARD */}
+                    {/* ==========================================
+                        DASHBOARD
+                    ========================================== */}
 
                     <Route
                         path="dashboard"
@@ -455,7 +548,9 @@ function App() {
                     />
 
 
-                    {/* QUẢN LÝ SÂN */}
+                    {/* ==========================================
+                        FIELD MANAGEMENT
+                    ========================================== */}
 
                     <Route
                         path="field-management"
@@ -465,7 +560,9 @@ function App() {
                     />
 
 
-                    {/* QUẢN LÝ ĐẶT SÂN */}
+                    {/* ==========================================
+                        BOOKING MANAGEMENT
+                    ========================================== */}
 
                     <Route
                         path="booking-management"
@@ -475,7 +572,9 @@ function App() {
                     />
 
 
-                    {/* QUẢN LÝ THANH TOÁN */}
+                    {/* ==========================================
+                        PAYMENT MANAGEMENT
+                    ========================================== */}
 
                     <Route
                         path="payment-management"
@@ -485,7 +584,9 @@ function App() {
                     />
 
 
-                    {/* THỐNG KÊ */}
+                    {/* ==========================================
+                        STATISTICS
+                    ========================================== */}
 
                     <Route
                         path="statistics"
@@ -520,13 +621,21 @@ function App() {
                     }
                 >
 
+                    {/* ==========================================
+                        DASHBOARD
+                    ========================================== */}
+
                     <Route
                         path="dashboard"
                         element={
-                            <Dashboard />
+                            <AdminDashboard />
                         }
                     />
 
+
+                    {/* ==========================================
+                        USERS
+                    ========================================== */}
 
                     <Route
                         path="users"
@@ -536,6 +645,10 @@ function App() {
                     />
 
 
+                    {/* ==========================================
+                        FIELD TYPES
+                    ========================================== */}
+
                     <Route
                         path="field-types"
                         element={
@@ -544,29 +657,45 @@ function App() {
                     />
 
 
+                    {/* ==========================================
+                        FIELDS
+                    ========================================== */}
+
                     <Route
                         path="fields"
                         element={
-                            <FieldManagement />
+                            <AdminFieldManagement />
                         }
                     />
 
+
+                    {/* ==========================================
+                        BOOKINGS
+                    ========================================== */}
 
                     <Route
                         path="bookings"
                         element={
-                            <BookingManagement />
+                            <AdminBookingManagement />
                         }
                     />
 
+
+                    {/* ==========================================
+                        PAYMENTS
+                    ========================================== */}
 
                     <Route
                         path="payments"
                         element={
-                            <PaymentManagement />
+                            <AdminPaymentManagement />
                         }
                     />
 
+
+                    {/* ==========================================
+                        REPORT
+                    ========================================== */}
 
                     <Route
                         path="report"

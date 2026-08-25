@@ -24,7 +24,6 @@ function BookingSchedule() {
     const navigate =
         useNavigate();
 
-
     const location =
         useLocation();
 
@@ -38,7 +37,7 @@ function BookingSchedule() {
 
 
     // ==========================================================
-    // DATE
+    // GET TODAY
     // ==========================================================
 
     const getToday = () => {
@@ -46,10 +45,8 @@ function BookingSchedule() {
         const date =
             new Date();
 
-
         const year =
             date.getFullYear();
-
 
         const month =
             String(
@@ -59,7 +56,6 @@ function BookingSchedule() {
                 "0"
             );
 
-
         const day =
             String(
                 date.getDate()
@@ -68,12 +64,13 @@ function BookingSchedule() {
                 "0"
             );
 
-
-        return (
-            `${year}-${month}-${day}`
-        );
+        return `${year}-${month}-${day}`;
     };
 
+
+    // ==========================================================
+    // BOOKING DATE
+    // ==========================================================
 
     const [
         bookingDate,
@@ -84,34 +81,79 @@ function BookingSchedule() {
 
 
     // ==========================================================
-    // TIME SLOTS
+    // CURRENT TIME
+    //
+    // Cập nhật mỗi 30 giây để khung giờ tự động khóa
+    // khi thời gian thực đi qua.
     // ==========================================================
 
-    const timeSlots = useMemo(() => {
+    const [
+        currentTime,
+        setCurrentTime,
+    ] = useState(
+        new Date()
+    );
 
-        const slots = [];
 
+    useEffect(() => {
 
-        for (
-            let hour = 6;
-            hour <= 21;
-            hour++
-        ) {
+        const timer =
+            setInterval(
+                () => {
 
-            slots.push(
-                `${String(
-                    hour
-                ).padStart(
-                    2,
-                    "0"
-                )}:00`
+                    setCurrentTime(
+                        new Date()
+                    );
+
+                },
+                30 * 1000
             );
-        }
 
 
-        return slots;
+        return () => {
+
+            clearInterval(
+                timer
+            );
+
+        };
 
     }, []);
+
+
+    // ==========================================================
+    // TIME SLOTS
+    //
+    // 06:00 → 21:00
+    // Mỗi slot = 1 giờ
+    // ==========================================================
+
+    const timeSlots =
+        useMemo(() => {
+
+            const slots = [];
+
+
+            for (
+                let hour = 6;
+                hour <= 21;
+                hour++
+            ) {
+
+                slots.push(
+                    `${String(
+                        hour
+                    ).padStart(
+                        2,
+                        "0"
+                    )}:00`
+                );
+            }
+
+
+            return slots;
+
+        }, []);
 
 
     // ==========================================================
@@ -171,8 +213,7 @@ function BookingSchedule() {
 
 
     // ==========================================================
-    // RESET SELECTED SLOT
-    // khi đổi ngày
+    // RESET SELECTED SLOT WHEN DATE CHANGES
     // ==========================================================
 
     useEffect(() => {
@@ -186,6 +227,9 @@ function BookingSchedule() {
 
     // ==========================================================
     // LOAD BOOKED SLOTS
+    //
+    // API lấy booking của tất cả tài khoản
+    // theo field + bookingDate
     // ==========================================================
 
     useEffect(() => {
@@ -242,18 +286,20 @@ function BookingSchedule() {
                     const slots = [];
 
 
-                    // ==================================================
-                    // TÁCH TỪNG KHUNG GIỜ ĐÃ BỊ CHIẾM
-                    // ==================================================
-
                     bookings.forEach(
                         booking => {
 
-                            if (
+                            const status =
                                 String(
                                     booking?.status ||
                                     ""
-                                ).toLowerCase() ===
+                                ).toLowerCase();
+
+
+                            // Cancelled không chiếm sân
+
+                            if (
+                                status ===
                                 "cancelled"
                             ) {
 
@@ -280,15 +326,17 @@ function BookingSchedule() {
 
                             const startHour =
                                 Number(
-                                    startTime
-                                        .split(":")[0]
+                                    startTime.split(
+                                        ":"
+                                    )[0]
                                 );
 
 
                             const endHour =
                                 Number(
-                                    endTime
-                                        .split(":")[0]
+                                    endTime.split(
+                                        ":"
+                                    )[0]
                                 );
 
 
@@ -386,7 +434,24 @@ function BookingSchedule() {
 
 
     // ==========================================================
-    // CHECK SLOT BOOKED
+    // SLOT -> HOUR
+    // ==========================================================
+
+    const getHourFromSlot =
+        (
+            slot
+        ) => {
+
+            return Number(
+                String(
+                    slot
+                ).split(":")[0]
+            );
+        };
+
+
+    // ==========================================================
+    // CHECK BOOKED
     // ==========================================================
 
     const isSlotBooked =
@@ -401,7 +466,7 @@ function BookingSchedule() {
 
 
     // ==========================================================
-    // CHECK SLOT SELECTED
+    // CHECK SELECTED
     // ==========================================================
 
     const isSlotSelected =
@@ -416,16 +481,94 @@ function BookingSchedule() {
 
 
     // ==========================================================
-    // SLOT NUMBER
+    // CHECK PAST SLOT
+    //
+    // Chỉ khóa khi chọn ngày hôm nay.
+    //
+    // Ví dụ:
+    // Hiện tại 19:10
+    // 18:00 -> khóa
+    // 19:00 -> khóa
+    // 20:00 -> còn chọn
+    //
+    // Vì slot 19:00 đã bắt đầu rồi thì không cho đặt nữa.
     // ==========================================================
 
-    const getHourFromSlot =
+    const isSlotPast =
         (
             slot
         ) => {
 
-            return Number(
-                slot.split(":")[0]
+            if (
+                bookingDate !==
+                getToday()
+            ) {
+
+                return false;
+            }
+
+
+            const slotHour =
+                getHourFromSlot(
+                    slot
+                );
+
+
+            const now =
+                currentTime;
+
+
+            const currentHour =
+                now.getHours();
+
+
+            const currentMinute =
+                now.getMinutes();
+
+
+            // Slot đã bắt đầu hoặc đã qua
+
+            if (
+                slotHour <
+                currentHour
+            ) {
+
+                return true;
+            }
+
+
+            if (
+                slotHour ===
+                currentHour
+            ) {
+
+                return (
+                    currentMinute >=
+                    0
+                );
+            }
+
+
+            return false;
+        };
+
+
+    // ==========================================================
+    // CHECK UNAVAILABLE
+    // ==========================================================
+
+    const isSlotUnavailable =
+        (
+            slot
+        ) => {
+
+            return (
+                isSlotBooked(
+                    slot
+                ) ||
+                isSlotPast(
+                    slot
+                )
             );
         };
 
@@ -448,13 +591,19 @@ function BookingSchedule() {
 
 
             const sorted =
-                [...slots].sort(
+                [
+                    ...slots,
+                ].sort(
                     (
                         a,
                         b
                     ) =>
-                        getHourFromSlot(a) -
-                        getHourFromSlot(b)
+                        getHourFromSlot(
+                            a
+                        ) -
+                        getHourFromSlot(
+                            b
+                        )
                 );
 
 
@@ -500,8 +649,12 @@ function BookingSchedule() {
             slot
         ) => {
 
+            // Không cho click slot đã đặt hoặc đã qua
+
             if (
-                isSlotBooked(slot)
+                isSlotUnavailable(
+                    slot
+                )
             ) {
 
                 return;
@@ -513,7 +666,9 @@ function BookingSchedule() {
             // --------------------------------------------------
 
             if (
-                isSlotSelected(slot)
+                isSlotSelected(
+                    slot
+                )
             ) {
 
                 setSelectedSlots(
@@ -533,17 +688,22 @@ function BookingSchedule() {
             // THÊM SLOT
             // --------------------------------------------------
 
-            const nextSlots = [
-                ...selectedSlots,
-                slot,
-            ].sort(
-                (
-                    a,
-                    b
-                ) =>
-                    getHourFromSlot(a) -
-                    getHourFromSlot(b)
-            );
+            const nextSlots =
+                [
+                    ...selectedSlots,
+                    slot,
+                ].sort(
+                    (
+                        a,
+                        b
+                    ) =>
+                        getHourFromSlot(
+                            a
+                        ) -
+                        getHourFromSlot(
+                            b
+                        )
+                );
 
 
             // --------------------------------------------------
@@ -564,6 +724,27 @@ function BookingSchedule() {
             }
 
 
+            // --------------------------------------------------
+            // KHÔNG CHO CHỌN SLOT ĐÃ BỊ ĐẶT / ĐÃ QUA
+            // --------------------------------------------------
+
+            if (
+                nextSlots.some(
+                    item =>
+                        isSlotUnavailable(
+                            item
+                        )
+                )
+            ) {
+
+                alert(
+                    "Khung giờ bạn chọn không còn khả dụng."
+                );
+
+                return;
+            }
+
+
             setSelectedSlots(
                 nextSlots
             );
@@ -576,13 +757,19 @@ function BookingSchedule() {
 
     const startTime =
         selectedSlots.length > 0
-            ? [...selectedSlots].sort(
+            ? [
+                ...selectedSlots,
+            ].sort(
                 (
                     a,
                     b
                 ) =>
-                    getHourFromSlot(a) -
-                    getHourFromSlot(b)
+                    getHourFromSlot(
+                        a
+                    ) -
+                    getHourFromSlot(
+                        b
+                    )
             )[0]
             : "";
 
@@ -596,13 +783,19 @@ function BookingSchedule() {
             ? (() => {
 
                 const sorted =
-                    [...selectedSlots].sort(
+                    [
+                        ...selectedSlots,
+                    ].sort(
                         (
                             a,
                             b
                         ) =>
-                            getHourFromSlot(a) -
-                            getHourFromSlot(b)
+                            getHourFromSlot(
+                                a
+                            ) -
+                            getHourFromSlot(
+                                b
+                            )
                     );
 
 
@@ -614,14 +807,12 @@ function BookingSchedule() {
                     );
 
 
-                return (
-                    `${String(
-                        last + 1
-                    ).padStart(
-                        2,
-                        "0"
-                    )}:00`
-                );
+                return `${String(
+                    last + 1
+                ).padStart(
+                    2,
+                    "0"
+                )}:00`;
 
             })()
             : "";
@@ -648,15 +839,13 @@ function BookingSchedule() {
 
 
     // ==========================================================
-    // BOOKING CONFIRM
+    // CONTINUE
     // ==========================================================
 
     const handleContinue =
         () => {
 
-            if (
-                !field?._id
-            ) {
+            if (!field?._id) {
 
                 alert(
                     "Không xác định được sân."
@@ -666,9 +855,7 @@ function BookingSchedule() {
             }
 
 
-            if (
-                !bookingDate
-            ) {
+            if (!bookingDate) {
 
                 alert(
                     "Vui lòng chọn ngày đặt sân."
@@ -691,22 +878,32 @@ function BookingSchedule() {
             }
 
 
+            // --------------------------------------------------
+            // KIỂM TRA LẠI THỜI GIAN
+            // --------------------------------------------------
+
             if (
                 selectedSlots.some(
                     slot =>
-                        isSlotBooked(
+                        isSlotUnavailable(
                             slot
                         )
                 )
             ) {
 
                 alert(
-                    "Một trong các khung giờ bạn chọn vừa được người khác đặt."
+                    "Một hoặc nhiều khung giờ không còn khả dụng."
                 );
+
+                setSelectedSlots([]);
 
                 return;
             }
 
+
+            // --------------------------------------------------
+            // KIỂM TRA LIÊN TIẾP
+            // --------------------------------------------------
 
             if (
                 !areSlotsConsecutive(
@@ -927,6 +1124,7 @@ function BookingSchedule() {
 
                                             e.currentTarget.style.display =
                                                 "none";
+
                                         }}
                                     />
 
@@ -949,6 +1147,7 @@ function BookingSchedule() {
                                         ></i>
 
                                     </div>
+
                                 )
                             }
 
@@ -960,10 +1159,12 @@ function BookingSchedule() {
                         <div className="col-md-9">
 
                             <h3 className="fw-bold">
+
                                 {
                                     field?.fieldName ||
                                     "Sân thể thao"
                                 }
+
                             </h3>
 
 
@@ -999,7 +1200,7 @@ function BookingSchedule() {
                                 }
 
                                 <small className="text-muted">
-                                    {" "} / giờ
+                                    {" "}/ giờ
                                 </small>
 
                             </h4>
@@ -1022,9 +1223,7 @@ function BookingSchedule() {
                 <div className="card-body">
 
                     <h4 className="fw-bold mb-3">
-
                         📅 Chọn ngày đặt sân
-
                     </h4>
 
 
@@ -1048,16 +1247,16 @@ function BookingSchedule() {
 
                     <div className="text-muted mt-2">
 
-                        Ngày đã chọn:
-
-                        {" "}
+                        Ngày đã chọn:{" "}
 
                         <strong>
+
                             {
                                 formatSelectedDate(
                                     bookingDate
                                 )
                             }
+
                         </strong>
 
                     </div>
@@ -1096,9 +1295,7 @@ function BookingSchedule() {
                     <div className="d-flex justify-content-between align-items-center mb-3">
 
                         <h4 className="fw-bold mb-0">
-
                             🕐 Chọn khung giờ
-
                         </h4>
 
 
@@ -1135,6 +1332,17 @@ function BookingSchedule() {
                                         );
 
 
+                                    const past =
+                                        isSlotPast(
+                                            time
+                                        );
+
+
+                                    const unavailable =
+                                        booked ||
+                                        past;
+
+
                                     const selected =
                                         isSlotSelected(
                                             time
@@ -1154,7 +1362,7 @@ function BookingSchedule() {
                                                 type="button"
 
                                                 className={
-                                                    booked
+                                                    unavailable
                                                         ? "booking-time-slot booked"
                                                         : selected
                                                         ? "booking-time-slot selected"
@@ -1162,7 +1370,7 @@ function BookingSchedule() {
                                                 }
 
                                                 disabled={
-                                                    booked ||
+                                                    unavailable ||
                                                     loadingAvailability
                                                 }
 
@@ -1187,6 +1395,8 @@ function BookingSchedule() {
                                                     {
                                                         booked
                                                             ? "Đã đặt"
+                                                            : past
+                                                            ? "Đã qua"
                                                             : selected
                                                             ? "Đang chọn"
                                                             : "Còn trống"
@@ -1245,7 +1455,7 @@ function BookingSchedule() {
                             ></span>
 
                             <span>
-                                Đã có người đặt
+                                Đã có người đặt / Đã qua
                             </span>
 
                         </div>
@@ -1266,9 +1476,7 @@ function BookingSchedule() {
                 <div className="card-body">
 
                     <h4 className="fw-bold mb-4">
-
                         📝 Thông tin đặt sân
-
                     </h4>
 
 
@@ -1280,12 +1488,15 @@ function BookingSchedule() {
                                 Ngày
                             </small>
 
+
                             <strong>
+
                                 {
                                     formatSelectedDate(
                                         bookingDate
                                     )
                                 }
+
                             </strong>
 
                         </div>
@@ -1296,6 +1507,7 @@ function BookingSchedule() {
                             <small className="text-muted d-block">
                                 Khung giờ
                             </small>
+
 
                             <strong>
 
@@ -1322,11 +1534,14 @@ function BookingSchedule() {
                                 Thời lượng
                             </small>
 
+
                             <strong>
+
                                 {
                                     totalHours
                                 }{" "}
                                 giờ
+
                             </strong>
 
                         </div>
@@ -1337,6 +1552,7 @@ function BookingSchedule() {
                             <small className="text-muted d-block">
                                 Đơn giá
                             </small>
+
 
                             <strong>
 
@@ -1360,6 +1576,7 @@ function BookingSchedule() {
                                 Tổng tiền
                             </small>
 
+
                             <h4 className="text-success mb-0">
 
                                 {
@@ -1380,7 +1597,7 @@ function BookingSchedule() {
 
 
             {/* ==================================================
-                BUTTON
+                BUTTONS
             ================================================== */}
 
             <div className="d-flex justify-content-end gap-2">
@@ -1410,7 +1627,7 @@ function BookingSchedule() {
                             0 ||
                         selectedSlots.some(
                             slot =>
-                                isSlotBooked(
+                                isSlotUnavailable(
                                     slot
                                 )
                         )
@@ -1429,7 +1646,6 @@ function BookingSchedule() {
                                 />
 
                                 Đang xử lý...
-
                             </>
 
                         ) : (
