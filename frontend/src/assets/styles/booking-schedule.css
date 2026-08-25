@@ -1,0 +1,287 @@
+/* =========================
+   Booking Schedule
+========================= */
+
+.booking-header {
+  display: flex;
+  gap: 30px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 25px;
+  align-items: center;
+}
+
+.booking-image {
+  width: 330px;
+  height: 220px;
+  object-fit: cover;
+  border-radius: 15px;
+  flex-shrink: 0;
+}
+
+.booking-info {
+  flex: 1;
+}
+
+.booking-info h2 {
+  font-size: 30px;
+  font-weight: 700;
+  margin-bottom: 15px;
+}
+
+.booking-info p {
+  margin-bottom: 10px;
+  color: #666;
+  font-size: 16px;
+}
+
+.booking-info h3 {
+  margin-top: 20px;
+  font-size: 28px;
+}
+
+/* =========================
+   Timeline
+========================= */
+
+.timeline-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+}
+
+.time-slot {
+
+  height: 60px;
+
+  border: 2px solid #28a745;
+
+  border-radius: 12px;
+
+  background: white;
+
+  font-weight: 600;
+
+  transition: .25s;
+
+  cursor: pointer;
+
+}
+
+.time-slot:hover {
+
+  background: #28a745;
+
+  color: white;
+
+  transform: translateY(-3px);
+
+}
+
+.time-slot.selected {
+
+  background: #28a745;
+
+  color: white;
+
+}
+
+.time-slot.booked {
+
+  background: #d6d6d6;
+
+  border-color: #d6d6d6;
+
+  color: #777;
+
+  cursor: not-allowed;
+
+}
+
+.time-slot.booked:hover {
+
+  transform: none;
+
+  background: #d6d6d6;
+
+  color: #777;
+
+}
+
+/* =========================
+   Legend
+========================= */
+
+.legend-item {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  font-weight: 500;
+
+}
+
+.legend {
+
+  width: 18px;
+
+  height: 18px;
+
+  border-radius: 5px;
+
+}
+
+.legend.available {
+
+  background: white;
+
+  border: 2px solid #28a745;
+
+}
+
+.legend.selected {
+
+  background: #28a745;
+
+}
+
+.legend.booked {
+
+  background: #d6d6d6;
+
+}
+
+/* =========================
+   Price Box
+========================= */
+
+.price-box {
+
+  background: #f8f9fa;
+
+  border-radius: 15px;
+
+  padding: 25px;
+
+  height: 100%;
+
+}
+
+.price-box h4 {
+
+  font-weight: 700;
+
+}
+
+.price-box h3 {
+
+  font-size: 32px;
+
+  font-weight: bold;
+
+}
+
+/* =========================
+   Table
+========================= */
+
+.table th {
+
+  width: 150px;
+
+  color: #666;
+
+}
+
+.table td {
+
+  font-weight: 600;
+
+}
+
+/* =========================
+   Buttons
+========================= */
+
+.btn-lg {
+
+  min-width: 170px;
+
+  border-radius: 12px;
+
+  font-weight: 600;
+
+}
+
+/* =========================
+   Card
+========================= */
+
+.card {
+
+  border-radius: 18px;
+
+}
+
+.card h4 {
+
+  font-weight: 700;
+
+}
+
+/* =========================
+   Responsive
+========================= */
+
+@media (max-width:992px){
+
+.booking-header{
+
+flex-direction:column;
+
+text-align:center;
+
+}
+
+.booking-image{
+
+width:100%;
+
+height:240px;
+
+}
+
+.timeline-grid{
+
+grid-template-columns:repeat(3,1fr);
+
+}
+
+}
+
+@media (max-width:768px){
+
+.timeline-grid{
+
+grid-template-columns:repeat(2,1fr);
+
+}
+
+.btn-lg{
+
+width:100%;
+
+margin-bottom:10px;
+
+}
+
+.d-flex.justify-content-between{
+
+flex-direction:column;
+
+}
+
+}

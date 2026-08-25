@@ -1,0 +1,442 @@
+/* ===============================
+   OVERLAY
+================================ */
+
+.field-detail-overlay {
+
+    position: fixed;
+
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: 100%;
+
+    background: rgba(0,0,0,0.35);
+
+    z-index: 2000;
+
+}
+
+
+
+/* ===============================
+   DRAWER BÊN TRÁI
+================================ */
+
+.field-detail-drawer {
+
+    position: absolute;
+
+    top: 0;
+    left: 0;
+
+    width: 50%;
+
+    max-width: 750px;
+
+    height: 100vh;
+
+    background: white;
+
+    overflow-y: auto;
+
+    box-shadow: 5px 0 20px rgba(0,0,0,0.2);
+
+
+    animation: slideDrawer .3s ease;
+
+}
+
+
+
+/* Animation mở */
+
+@keyframes slideDrawer {
+
+
+    from {
+
+        transform: translateX(-100%);
+
+    }
+
+
+    to {
+
+        transform: translateX(0);
+
+    }
+
+}
+
+
+
+
+
+/* ===============================
+   ẢNH HEADER
+================================ */
+
+.detail-main-image {
+
+    width: 100%;
+
+    height: 320px;
+
+    object-fit: cover;
+
+}
+
+
+
+
+
+/* ===============================
+   NÚT ĐÓNG
+================================ */
+
+
+.detail-close {
+
+    position: absolute;
+
+    top: 20px;
+
+    right: 20px;
+
+
+    width: 40px;
+
+    height: 40px;
+
+
+    border: none;
+
+    border-radius: 50%;
+
+
+    background: white;
+
+
+    font-size: 22px;
+
+    cursor: pointer;
+
+
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+
+}
+
+
+
+
+
+/* ===============================
+   CONTENT
+================================ */
+
+
+.detail-content {
+
+    padding: 25px;
+
+}
+
+
+
+.detail-content h2 {
+
+    font-weight: 700;
+
+    margin-bottom: 5px;
+
+}
+
+
+
+.rating {
+
+    color: #f39c12;
+
+    margin-bottom: 20px;
+
+}
+
+
+
+
+
+/* ===============================
+   TAB
+================================ */
+
+
+.detail-tabs {
+
+    display: flex;
+
+    gap: 10px;
+
+    border-bottom: 1px solid #ddd;
+
+    margin-bottom: 25px;
+
+
+    overflow-x: auto;
+
+}
+
+
+
+.detail-tabs button {
+
+
+    border: none;
+
+    background: none;
+
+
+    padding: 12px 15px;
+
+
+    font-weight: 600;
+
+
+    white-space: nowrap;
+
+
+    cursor: pointer;
+
+
+}
+
+
+
+.detail-tabs button:hover {
+
+    color: #198754;
+
+}
+
+
+
+.detail-tabs .active {
+
+
+    color: #198754;
+
+
+    border-bottom: 3px solid #198754;
+
+}
+
+
+
+
+
+/* ===============================
+   THÔNG TIN
+================================ */
+
+
+.detail-content h5 {
+
+
+    margin-top: 20px;
+
+    font-weight: 700;
+
+}
+
+
+
+.detail-content p {
+
+
+    color: #555;
+
+}
+
+
+
+.price {
+
+
+    color: #198754 !important;
+
+    font-size: 22px;
+
+    font-weight: bold;
+
+}
+
+
+
+
+
+/* ===============================
+   DỊCH VỤ
+================================ */
+
+
+.service-card {
+
+
+    background: #f8f9fa;
+
+
+    border-radius: 12px;
+
+
+    padding: 18px;
+
+
+    margin-bottom: 15px;
+
+
+    border: 1px solid #eee;
+
+
+    transition: .2s;
+
+
+}
+
+
+
+.service-card:hover {
+
+
+    transform: translateY(-3px);
+
+
+    box-shadow: 0 5px 15px rgba(0,0,0,.1);
+
+
+}
+
+
+
+.service-card h5 {
+
+
+    margin-top: 0;
+
+}
+
+
+
+.service-card p {
+
+
+    margin: 5px 0;
+
+}
+
+
+
+
+
+/* ===============================
+   HÌNH ẢNH
+================================ */
+
+
+.gallery img {
+
+
+    width: 100%;
+
+
+    border-radius: 12px;
+
+
+}
+
+
+
+
+
+/* ===============================
+   ĐIỀU KHOẢN
+================================ */
+
+
+.rules {
+
+
+    padding-left: 20px;
+
+
+}
+
+
+
+.rules li {
+
+
+    margin-bottom: 12px;
+
+
+}
+
+
+
+
+
+/* ===============================
+   BUTTON ĐẶT SÂN
+================================ */
+
+
+.booking-btn {
+
+
+    width: 100%;
+
+
+    padding: 14px;
+
+
+    margin-top: 25px;
+
+
+    border: none;
+
+
+    border-radius: 10px;
+
+
+    background: #198754;
+
+
+    color: white;
+
+
+    font-size: 18px;
+
+
+    font-weight: bold;
+
+
+    cursor: pointer;
+
+
+}
+
+
+
+.booking-btn:hover {
+
+
+    background: #157347;
+
+
+}
+.field-detail-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 2000;
+}
